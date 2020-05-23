@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "es5", "es2015.collection", "es2015.promise"],
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "target": "es5",
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "moduleResolution": "Node",
+    "skipLibCheck": true,
+    "declaration": true
+  }
+}
