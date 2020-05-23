@@ -1,27 +1,27 @@
 #!/usr/bin/env node
-import { parse as parsePath, format as formatPath } from 'path';
-import { buildAllFiles } from './build';
-import { MessageGenerator } from './message_generator';
-import { execSync } from 'child_process';
-import 'source-map-support/register';
+import { parse as parsePath, format as formatPath } from "path";
+import { buildAllFiles } from "./build";
+import { MessageGenerator } from "./message_generator";
+import { execSync } from "child_process";
+import "source-map-support/register";
 
 async function main(): Promise<void> {
   let purpose = process.argv[2];
-  if (purpose === 'build') {
+  if (purpose === "build") {
     await buildAllFiles();
-  } else if (purpose === 'run') {
+  } else if (purpose === "run") {
     await buildAllFiles();
     let pathObj = parsePath(process.argv[3]);
     pathObj.base = undefined;
-    pathObj.ext = '.js';
+    pathObj.ext = ".js";
     let passAlongArgs = process.argv.slice(4);
     let output = execSync(`node ${formatPath(pathObj)} ${passAlongArgs}`);
     console.log(output.toString());
-  } else if (purpose === 'msg') {
+  } else if (purpose === "msg") {
     let pathObj = parsePath(process.argv[3]);
     pathObj.base = undefined;
-    pathObj.ext = '.ts';
-    let dryRun = (process.argv[4] === 'dryRun');
+    pathObj.ext = ".ts";
+    let dryRun = process.argv[4] === "dryRun";
     new MessageGenerator(formatPath(pathObj), dryRun).generate();
     if (!dryRun) {
       await buildAllFiles();
@@ -44,4 +44,3 @@ async function main(): Promise<void> {
 }
 
 main();
-

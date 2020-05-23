@@ -1,14 +1,14 @@
-import { execSync } from 'child_process';
-import { readFileSync, writeFileSync } from 'fs';
-import { TestCase, runTests } from 'selfage/test_base';
-import { MessageGenerator } from './message_generator';
+import { execSync } from "child_process";
+import { readFileSync, writeFileSync } from "fs";
+import { TestCase, runTests } from "selfage/test_base";
+import { MessageGenerator } from "./message_generator";
 
 class GenerateMessageWithinSameFile implements TestCase {
-  public name = 'GenerateMessagesWithinSameFile';
+  public name = "GenerateMessagesWithinSameFile";
 
   public async execute() {
     // Prepare
-    let filePath = './test_data/test_interface.ts';
+    let filePath = "./test_data/test_interface.ts";
     let originalContent = readFileSync(filePath);
 
     // Execute
@@ -16,7 +16,7 @@ class GenerateMessageWithinSameFile implements TestCase {
 
     // Verify
     try {
-      execSync(`tsc ${filePath}`, {encoding: 'utf-8'});
+      execSync(`tsc ${filePath}`, { encoding: "utf-8" });
     } finally {
       writeFileSync(filePath, originalContent);
     }
@@ -24,14 +24,14 @@ class GenerateMessageWithinSameFile implements TestCase {
 }
 
 class GenerateMessageWithNestedField implements TestCase {
-  public name = 'GenerateMessageWithNestedField';
+  public name = "GenerateMessageWithNestedField";
 
   public async execute() {
     // Prepare
-    let filePath = './test_data/test_interface.ts';
+    let filePath = "./test_data/test_interface.ts";
     let originalContent = readFileSync(filePath);
     new MessageGenerator(filePath, true).generate();
-    let filePathAnother = './test_data/test_interface_another.ts';
+    let filePathAnother = "./test_data/test_interface_another.ts";
     let originalContentAnother = readFileSync(filePathAnother);
 
     // Execute
@@ -39,7 +39,7 @@ class GenerateMessageWithNestedField implements TestCase {
 
     // Verify
     try {
-      execSync(`tsc ${filePathAnother}`, {encoding: 'utf-8'});
+      execSync(`tsc ${filePathAnother}`, { encoding: "utf-8" });
     } finally {
       writeFileSync(filePath, originalContent);
       writeFileSync(filePathAnother, originalContentAnother);
@@ -47,8 +47,7 @@ class GenerateMessageWithNestedField implements TestCase {
   }
 }
 
-runTests('MessageGeneratorTest', [
+runTests("MessageGeneratorTest", [
   new GenerateMessageWithinSameFile(),
   new GenerateMessageWithNestedField(),
 ]);
-
