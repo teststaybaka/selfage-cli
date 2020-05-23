@@ -1,0 +1,34 @@
+{
+  "name": "selfage-cli",
+  "version": "0.0.1",
+  "description": "CLI for selfage package",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teststaybaka/selfage-cli.git"
+  },
+  "keywords": [
+    "node",
+    "framework",
+    "typescript"
+  ],
+  "author": "Yuxuan Xie <teststaybaka@gmail.com> (http://www.yuxuanxie.com)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/teststaybaka/selfage-cli/issues"
+  },
+  "homepage": "https://github.com/teststaybaka/selfage-cli#readme",
+  "dependencies": {
+    "@types/node": "^13.13.5",
+    "source-map-support": "^0.5.19"
+  },
+  "devDependencies": {
+    "prettier": "2.0.5",
+    "typescript": "^3.9.2"
+  },
+  "bin": {
+    "selfage": "./main.js"
+  },
+  "scripts": {
+    "release": "tsc && npm publish"
+  }
+}
