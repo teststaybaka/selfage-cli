@@ -45,11 +45,11 @@ export class MessageGenerator {
     }
 
     if (node.kind === SyntaxKind.InterfaceDeclaration) {
-      this.generateMessageSerializer(node as InterfaceDeclaration);
+      this.generateMessageParser(node as InterfaceDeclaration);
     }
 
     if (node.kind === SyntaxKind.EnumDeclaration) {
-      this.generateEnumSerializer(node as EnumDeclaration);
+      this.generateEnumParser(node as EnumDeclaration);
     }
   }
 
@@ -65,7 +65,7 @@ export class MessageGenerator {
     this.pathToNamedImports.set(importPath, new Set(namedImports));
   }
 
-  private generateMessageSerializer(interfaceNode: InterfaceDeclaration): void {
+  private generateMessageParser(interfaceNode: InterfaceDeclaration): void {
     let interfaceName = interfaceNode.name.text;
     this.content += `
 export interface ${interfaceName}`;
@@ -107,8 +107,8 @@ export interface ${interfaceName}`;
 `;
 
     this.content += `
-export class ${interfaceName}Serializer implements MessageSerializer<${interfaceName}> {
-  public fromObj(obj?: any, output?: object): ${interfaceName} {
+export class ${interfaceName}Parser implements MessageParser<${interfaceName}> {
+  public from(obj?: any, output?: object): ${interfaceName} {
     if (!obj || typeof obj !== 'object') {
       return undefined;
     }
@@ -124,12 +124,12 @@ export class ${interfaceName}Serializer implements MessageSerializer<${interface
       for (let baseType of interfaceNode.heritageClauses[0].types) {
         let baseTypeName = (baseType.expression as Identifier).text;
         this.content += `
-    new ${baseTypeName}Serializer().fromObj(obj, ret);`;
+    new ${baseTypeName}Parser().from(obj, ret);`;
         let importPath = this.namedImportsToPath.get(baseTypeName);
         if (importPath) {
           this.pathToNamedImports
             .get(importPath)
-            .add(`${baseTypeName}Serializer`);
+            .add(`${baseTypeName}Parser`);
         }
       }
     }
@@ -158,13 +158,13 @@ export class ${interfaceName}Serializer implements MessageSerializer<${interface
     }`;
       } else if (nestedFieldType) {
         this.content += `
-    ret.${fieldName} = new ${nestedFieldType}Serializer().fromObj(obj.${fieldName});`;
+    ret.${fieldName} = new ${nestedFieldType}Parser().from(obj.${fieldName});`;
 
         let importPath = this.namedImportsToPath.get(nestedFieldType);
         if (importPath) {
           this.pathToNamedImports
             .get(importPath)
-            .add(`${nestedFieldType}Serializer`);
+            .add(`${nestedFieldType}Parser`);
         }
       }
     }
@@ -176,7 +176,7 @@ export class ${interfaceName}Serializer implements MessageSerializer<${interface
 `;
   }
 
-  private generateEnumSerializer(enumNode: EnumDeclaration): void {
+  private generateEnumParser(enumNode: EnumDeclaration): void {
     let enumName = enumNode.name.text;
     this.content += `
 export enum ${enumName} {`;
@@ -193,8 +193,8 @@ export enum ${enumName} {`;
 `;
 
     this.content += `
-export class ${enumName}Serializer implements MessageSerializer<${enumName}> {
-  public fromObj(obj?: any): ${enumName} {
+export class ${enumName}Parser implements MessageParser<${enumName}> {
+  public from(obj?: any): ${enumName} {
     if (!obj || typeof obj !== 'number' || !(obj in ${enumName})) {
       return undefined;
     } else {
@@ -213,11 +213,11 @@ export class ${enumName}Serializer implements MessageSerializer<${enumName}> {
         `import { ${namedImports} } from '${importPath}';\n` + this.content;
     }
 
-    let serializerPath = "selfage/message_serializer";
+    let serializerPath = "selfage/message_parser";
     if (this.pathToNamedImports.has(serializerPath)) {
       return;
     }
     this.content =
-      `import { MessageSerializer } from '${serializerPath}';\n` + this.content;
+      `import { MessageParser } from '${serializerPath}';\n` + this.content;
   }
 }
