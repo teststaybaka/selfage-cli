@@ -1,3 +1,4 @@
+// Deprecated in favor of prettier. Leave here as example.
 import { readFileSync } from 'fs';
 import { InterfaceDeclaration, Statement, NodeArray, NamedImports, StringLiteral, ImportDeclaration, createSourceFile, ScriptTarget, Node as TsNode, SyntaxKind } from 'typescript';
 
