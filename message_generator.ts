@@ -204,7 +204,7 @@ export class ${enumName}Parser implements MessageParser<${enumName}> {
   }
 
   private prependImports(): void {
-    for (let entry of Array.from(this.pathToNamedImports.entries())) {
+    for (let entry of this.pathToNamedImports.entries()) {
       let importPath = entry[0];
       let namedImports = Array.from(entry[1]).join(", ");
       this.content =
