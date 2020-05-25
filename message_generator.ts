@@ -123,14 +123,9 @@ export class ${interfaceName}Parser implements MessageParser<${interfaceName}> {
     if (interfaceNode.heritageClauses) {
       for (let baseType of interfaceNode.heritageClauses[0].types) {
         let baseTypeName = (baseType.expression as Identifier).text;
+        this.importParserIfTypeIsImported(baseTypeName);    
         this.content += `
     new ${baseTypeName}Parser().from(obj, ret);`;
-        let importPath = this.namedImportsToPath.get(baseTypeName);
-        if (importPath) {
-          this.pathToNamedImports
-            .get(importPath)
-            .add(`${baseTypeName}Parser`);
-        }
       }
     }
 
@@ -157,15 +152,9 @@ export class ${interfaceName}Parser implements MessageParser<${interfaceName}> {
       ret.${fieldName} = obj.${fieldName};
     }`;
       } else if (nestedFieldType) {
+        this.importParserIfTypeIsImported(nestedFieldType);
         this.content += `
     ret.${fieldName} = new ${nestedFieldType}Parser().from(obj.${fieldName});`;
-
-        let importPath = this.namedImportsToPath.get(nestedFieldType);
-        if (importPath) {
-          this.pathToNamedImports
-            .get(importPath)
-            .add(`${nestedFieldType}Parser`);
-        }
       }
     }
 
@@ -174,6 +163,15 @@ export class ${interfaceName}Parser implements MessageParser<${interfaceName}> {
   }
 }
 `;
+  }
+
+  private importParserIfTypeIsImported(typeName: string): void {
+    let importPath = this.namedImportsToPath.get(typeName);
+    if (importPath) {
+      this.pathToNamedImports
+        .get(importPath)
+        .add(`${typeName}Parser`);
+    }
   }
 
   private generateEnumParser(enumNode: EnumDeclaration): void {
