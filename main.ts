@@ -23,9 +23,6 @@ async function main(): Promise<void> {
     pathObj.ext = ".ts";
     let dryRun = process.argv[4] === "dryRun";
     new MessageGenerator(formatPath(pathObj), dryRun).generate();
-    if (!dryRun) {
-      await buildAllFiles();
-    }
   } else {
     console.log(`Usage:
   selfage build

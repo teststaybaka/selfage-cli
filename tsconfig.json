@@ -13,5 +13,8 @@
     "moduleResolution": "Node",
     "skipLibCheck": true,
     "declaration": true
-  }
+  },
+  "exclude": [
+    "test_data",
+  ]
 }
