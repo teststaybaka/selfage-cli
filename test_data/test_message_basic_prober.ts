@@ -1,13 +1,13 @@
 import { assert } from "selfage/test_base";
 import {
   BasicData,
-  BasicDataParser,
+  BASIC_DATA_UTIL,
   ExportsOptionals,
-  ExportsOptionalsParser,
+  EXPORTS_OPTIONALS_UTIL,
   NoExportOneEnum,
-  NoExportOneEnumParser,
+  NO_EXPORT_ONE_ENUM_UTIL,
   Color,
-  ColorParser,
+  COLOR_UTIL,
 } from "./test_message_basic";
 
 // Prepare
@@ -23,16 +23,14 @@ let oneEnum = NoExportOneEnum.ONE;
 let blue = Color.BLUE;
 
 // Execute
-let parsedBasicData = new BasicDataParser().from(missingBooleanField);
-let parsedExportsOptionals = new ExportsOptionalsParser().from(
-  missingStringField
-);
-let parsedOneEnum = new NoExportOneEnumParser().from(oneEnum);
-let parsedBlue = new ColorParser().from(blue);
-let randomData = new BasicDataParser().from({ random: 0 });
-let undefinedData = new BasicDataParser().from(undefined);
-let nullData = new BasicDataParser().from(null);
-let outOfRangeEnum = new NoExportOneEnumParser().from(20);
+let parsedBasicData = BASIC_DATA_UTIL.from(missingBooleanField);
+let parsedExportsOptionals = EXPORTS_OPTIONALS_UTIL.from(missingStringField);
+let parsedOneEnum = NO_EXPORT_ONE_ENUM_UTIL.from(oneEnum);
+let parsedBlue = COLOR_UTIL.from(blue);
+let randomData = BASIC_DATA_UTIL.from({ random: 0 });
+let undefinedData = BASIC_DATA_UTIL.from(undefined);
+let nullData = BASIC_DATA_UTIL.from(null);
+let outOfRangeEnum = BASIC_DATA_UTIL.from(20);
 
 // Verify
 assert(parsedBasicData.numberField === 1);

@@ -1,9 +1,9 @@
 import { assert } from "selfage/test_base";
 import {
   ExtendedData,
-  ExtendedDataParser,
+  EXTENDED_DATA_UTIL,
   NestedData,
-  NestedDataParser,
+  NESTED_DATA_UTIL,
 } from "./test_message_imported";
 import { Color } from "./test_message_basic";
 
@@ -20,8 +20,8 @@ let nestedData: NestedData = {
 };
 
 // Execute
-let parsedExtendedData = new ExtendedDataParser().from(extendedData);
-let parsedNestedData = new NestedDataParser().from(nestedData);
+let parsedExtendedData = EXTENDED_DATA_UTIL.from(extendedData);
+let parsedNestedData = NESTED_DATA_UTIL.from(nestedData);
 
 // Verify
 assert(parsedExtendedData.stringField === "lalala");

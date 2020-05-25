@@ -1,7 +1,7 @@
 import { assert } from "selfage/test_base";
 import {
   ExtendNestedData,
-  ExtendNestedDataParser,
+  EXTEND_NESTED_DATA_UTIL,
 } from "./test_message_field_extended";
 
 // Prepare
@@ -13,9 +13,7 @@ let extendNestedData: ExtendNestedData = {
 };
 
 // Execute
-let parsedExtendNestedData = new ExtendNestedDataParser().from(
-  extendNestedData
-);
+let parsedExtendNestedData = EXTEND_NESTED_DATA_UTIL.from(extendNestedData);
 
 // Verify
 assert(parsedExtendNestedData.basicData.numberField === 10);

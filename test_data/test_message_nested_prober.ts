@@ -1,5 +1,5 @@
 import { assert } from "selfage/test_base";
-import { TestEnum, NestedData, NestedDataParser } from "./test_message_nested";
+import { TestEnum, NestedData, NESTED_DATA_UTIL } from "./test_message_nested";
 
 // Prepare
 let nestedData: NestedData = {
@@ -13,7 +13,7 @@ let nestedData: NestedData = {
 };
 
 // Execute
-let parsedNestedData = new NestedDataParser().from(nestedData);
+let parsedNestedData = NESTED_DATA_UTIL.from(nestedData);
 
 // Verify
 assert(parsedNestedData.basicData.data1 === "lalala");

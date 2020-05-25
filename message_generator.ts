@@ -17,6 +17,8 @@ import {
 } from "typescript";
 
 export class MessageGenerator {
+  private static UPPER_CASES_REGEXP = /[A-Z]/;
+
   private pathToNamedImports = new Map<string, Set<string>>();
   private namedImportsToPath = new Map<string, string>();
   private content = "";
@@ -107,7 +109,7 @@ export interface ${interfaceName}`;
 `;
 
     this.content += `
-export class ${interfaceName}Parser implements MessageParser<${interfaceName}> {
+export class ${interfaceName}Util implements MessageUtil<${interfaceName}> {
   public from(obj?: any, output?: object): ${interfaceName} {
     if (!obj || typeof obj !== 'object') {
       return undefined;
@@ -123,9 +125,10 @@ export class ${interfaceName}Parser implements MessageParser<${interfaceName}> {
     if (interfaceNode.heritageClauses) {
       for (let baseType of interfaceNode.heritageClauses[0].types) {
         let baseTypeName = (baseType.expression as Identifier).text;
-        this.importParserIfTypeIsImported(baseTypeName);    
+        let utilName = this.createUtilName(baseTypeName);
+        this.importUtilIfTypeIsImported(baseTypeName, utilName);
         this.content += `
-    new ${baseTypeName}Parser().from(obj, ret);`;
+    ${utilName}.from(obj, ret);`;
       }
     }
 
@@ -152,25 +155,40 @@ export class ${interfaceName}Parser implements MessageParser<${interfaceName}> {
       ret.${fieldName} = obj.${fieldName};
     }`;
       } else if (nestedFieldType) {
-        this.importParserIfTypeIsImported(nestedFieldType);
+        let utilName = this.createUtilName(nestedFieldType);
+        this.importUtilIfTypeIsImported(nestedFieldType, utilName);
         this.content += `
-    ret.${fieldName} = new ${nestedFieldType}Parser().from(obj.${fieldName});`;
+    ret.${fieldName} = ${utilName}.from(obj.${fieldName});`;
       }
     }
 
+    let singletonUtilName = this.createUtilName(interfaceName);
     this.content += `
     return ret;
   }
 }
+
+export let ${singletonUtilName} = new ${interfaceName}Util();
 `;
   }
 
-  private importParserIfTypeIsImported(typeName: string): void {
+  private createUtilName(typeName: string): string {
+    let upperCaseSnakedName = typeName.charAt(0);
+    for (let i = 1; i < typeName.length; i++) {
+      let char = typeName.charAt(i);
+      if (MessageGenerator.UPPER_CASES_REGEXP.test(char)) {
+        upperCaseSnakedName += "_" + char;
+      } else {
+        upperCaseSnakedName += char.toUpperCase();
+      }
+    }
+    return upperCaseSnakedName + "_UTIL";
+  }
+
+  private importUtilIfTypeIsImported(typeName: string, utilName: string): void {
     let importPath = this.namedImportsToPath.get(typeName);
     if (importPath) {
-      this.pathToNamedImports
-        .get(importPath)
-        .add(`${typeName}Parser`);
+      this.pathToNamedImports.get(importPath).add(utilName);
     }
   }
 
@@ -190,8 +208,9 @@ export enum ${enumName} {`;
 }
 `;
 
+    let singletonUtilName = this.createUtilName(enumName);
     this.content += `
-export class ${enumName}Parser implements MessageParser<${enumName}> {
+export class ${enumName}Util implements MessageUtil<${enumName}> {
   public from(obj?: any): ${enumName} {
     if (!obj || typeof obj !== 'number' || !(obj in ${enumName})) {
       return undefined;
@@ -200,6 +219,8 @@ export class ${enumName}Parser implements MessageParser<${enumName}> {
     }
   }
 }
+
+export let ${singletonUtilName} = new ${enumName}Util();
 `;
   }
 
@@ -211,11 +232,11 @@ export class ${enumName}Parser implements MessageParser<${enumName}> {
         `import { ${namedImports} } from '${importPath}';\n` + this.content;
     }
 
-    let serializerPath = "selfage/message_parser";
+    let serializerPath = "selfage/message_util";
     if (this.pathToNamedImports.has(serializerPath)) {
       return;
     }
     this.content =
-      `import { MessageParser } from '${serializerPath}';\n` + this.content;
+      `import { MessageUtil } from '${serializerPath}';\n` + this.content;
   }
 }

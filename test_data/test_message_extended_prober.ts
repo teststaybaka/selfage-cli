@@ -1,9 +1,9 @@
 import { assert } from "selfage/test_base";
 import {
   ExtendedData,
-  ExtendedDataParser,
+  EXTENDED_DATA_UTIL,
   ExtendedData2,
-  ExtendedData2Parser,
+  EXTENDED_DATA2_UTIL,
 } from "./test_message_extended";
 
 // Prepare
@@ -18,8 +18,8 @@ let extendedData2: ExtendedData2 = {
 };
 
 // Execute
-let parsedExtendedData = new ExtendedDataParser().from(extendedData);
-let parsedExtendedData2 = new ExtendedData2Parser().from(extendedData2);
+let parsedExtendedData = EXTENDED_DATA_UTIL.from(extendedData);
+let parsedExtendedData2 = EXTENDED_DATA2_UTIL.from(extendedData2);
 
 // Verify
 assert(parsedExtendedData.data1 === "lalala");
