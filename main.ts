@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { parse as parsePath, format as formatPath } from "path";
+import path = require("path");
 import { buildAllFiles, BuildCleaner } from "./build";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
@@ -13,19 +13,19 @@ async function main(): Promise<void> {
     BuildCleaner.clean();
   } else if (purpose === "run") {
     buildAllFiles();
-    let pathObj = parsePath(process.argv[3]);
+    let pathObj = path.parse(process.argv[3]);
     pathObj.base = undefined;
     pathObj.ext = ".js";
     let passAlongArgs = process.argv.slice(4);
-    spawnSync("node", [formatPath(pathObj), ...passAlongArgs], {
+    spawnSync("node", [path.format(pathObj), ...passAlongArgs], {
       stdio: "inherit",
     });
   } else if (purpose === "msg") {
-    let pathObj = parsePath(process.argv[3]);
+    let pathObj = path.parse(process.argv[3]);
     pathObj.base = undefined;
     pathObj.ext = ".ts";
     let dryRun = process.argv[4] === "dryRun";
-    new MessageGenerator(formatPath(pathObj), dryRun).generate();
+    new MessageGenerator(path.format(pathObj), dryRun).generate();
   } else {
     console.log(`Usage:
   selfage build
