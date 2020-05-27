@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parse as parsePath, format as formatPath } from "path";
-import { buildAllFiles } from "./build";
+import { buildAllFiles, BuildCleaner } from "./build";
 import { MessageGenerator } from "./message_generator";
 import { execSync } from "child_process";
 import "source-map-support/register";
@@ -8,9 +8,11 @@ import "source-map-support/register";
 async function main(): Promise<void> {
   let purpose = process.argv[2];
   if (purpose === "build") {
-    await buildAllFiles();
+    buildAllFiles();
+  } else if (purpose === "clean") {
+    BuildCleaner.clean();
   } else if (purpose === "run") {
-    await buildAllFiles();
+    buildAllFiles();
     let pathObj = parsePath(process.argv[3]);
     pathObj.base = undefined;
     pathObj.ext = ".js";
@@ -26,10 +28,12 @@ async function main(): Promise<void> {
   } else {
     console.log(`Usage:
   selfage build
+  selfage clean
   selfage run <relative file path> <pass-through flags>
   selfage msg <relative file path> <dryRun>
   
   build: Compile all files.
+  clean: Delete all files generated from compiling.
   run: Compile and run the specified file with the rest of the flags passed through.
   msg: Generate implementions of MessageSerializer for and overwrite the specified file, followed by compiling to verify the result.
 
