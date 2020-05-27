@@ -2,7 +2,7 @@
 import { parse as parsePath, format as formatPath } from "path";
 import { buildAllFiles, BuildCleaner } from "./build";
 import { MessageGenerator } from "./message_generator";
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import "source-map-support/register";
 
 async function main(): Promise<void> {
@@ -17,8 +17,9 @@ async function main(): Promise<void> {
     pathObj.base = undefined;
     pathObj.ext = ".js";
     let passAlongArgs = process.argv.slice(4);
-    let output = execSync(`node ${formatPath(pathObj)} ${passAlongArgs}`);
-    console.log(output.toString());
+    spawnSync("node", [formatPath(pathObj), ...passAlongArgs], {
+      stdio: "inherit",
+    });
   } else if (purpose === "msg") {
     let pathObj = parsePath(process.argv[3]);
     pathObj.base = undefined;

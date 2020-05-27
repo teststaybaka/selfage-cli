@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
 import { TestCase, runTests } from "selfage/test_base";
 import { MessageGenerator } from "./message_generator";
@@ -27,12 +27,20 @@ function parameterizedTest(
     // Use `tsc` to check if generated messages contain any syntax error and can
     // be properly imported in the corresponding prober module. Execute the
     // prober which tests if generated functions work properly.
-    execSync(
-      `tsc --noUnusedLocals --noImplicitAny ` +
-        `${testTargetModule}_prober.ts; node ` +
-        `${testTargetModule}_prober.js;`,
-      { encoding: "utf-8" }
+    let compilingRes = spawnSync(
+      "tsc",
+      ["--noUnusedLocals", "--noImplicitAny", testTargetModule + "_prober.ts"],
+      { stdio: "inherit" }
     );
+    if (compilingRes.status !== 0) {
+      throw new Error("Compiling error.");
+    }
+    let executeRes = spawnSync("node", [testTargetModule + "_prober.js"], {
+      stdio: "inherit",
+    });
+    if (executeRes.status !== 0) {
+      throw new Error("Execution error");
+    }
   } finally {
     // Cleanup
     for (let entry of originalContents.entries()) {
