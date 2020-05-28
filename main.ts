@@ -36,7 +36,7 @@ async function main(): Promise<void> {
   build: Compile all files.
   clean: Delete all files generated from compiling.
   run: Compile and run the specified file with the rest of the flags passed through.
-  msg: Generate implementions of MessageSerializer for and overwrite the specified file, followed by compiling to verify the result.
+  msg: Generate implementions of MessageUtil for and overwrite the specified file..
 
   <relative file path>'s extension can be .js, .ts, a single ".", or no extension at all, but cannot be .d.ts. It will be transformed to ts or js file depending on the command.
   <pass-through flags> is the list of rest command line arguments which will be passed to the program being started as it is.
