@@ -1,9 +1,18 @@
 #!/usr/bin/env node
 import path = require("path");
+import fs = require("fs");
+import prettier = require("prettier");
 import { buildAllFiles, BuildCleaner } from "./build";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import "source-map-support/register";
+
+function forceFileExtensions(fileFromCommandLine: string, ext: string): string {
+  let pathObj = path.parse(fileFromCommandLine);
+  pathObj.base = undefined;
+  pathObj.ext = ext;
+  return path.format(pathObj);
+}
 
 async function main(): Promise<void> {
   let purpose = process.argv[2];
@@ -13,33 +22,39 @@ async function main(): Promise<void> {
     BuildCleaner.clean();
   } else if (purpose === "run") {
     buildAllFiles();
-    let pathObj = path.parse(process.argv[3]);
-    pathObj.base = undefined;
-    pathObj.ext = ".js";
+    let filePath = forceFileExtensions(process.argv[3], ".js");
     let passAlongArgs = process.argv.slice(4);
-    spawnSync("node", [path.format(pathObj), ...passAlongArgs], {
+    spawnSync("node", [filePath, ...passAlongArgs], {
       stdio: "inherit",
     });
-  } else if (purpose === 'fmt') {
-    let pathObj = path.parse(process.argv[3]);
-    pathObj.ext = ".ts";
-    let dryRun = process.argv[4] === 'dryRUn';
-    spawnSync('');
+  } else if (purpose === "fmt") {
+    let filePath = forceFileExtensions(process.argv[3], ".ts");
+    let dryRun = process.argv[4] === "dryRUn";
+    let codeToBeFormatted = fs.readFileSync(filePath).toString();
+    let codeFormatted = prettier.format(codeToBeFormatted, {
+      parser: "typescript",
+    });
+    if (dryRun) {
+      console.log(codeFormatted);
+    } else {
+      fs.writeFileSync(filePath, codeFormatted);
+    }
   } else if (purpose === "msg") {
-    pathObj.base = undefined;
-    pathObj.ext = ".ts";
+    let filePath = forceFileExtensions(process.argv[3], ".ts");
     let dryRun = process.argv[4] === "dryRun";
-    new MessageGenerator(path.format(pathObj), dryRun).generate();
+    new MessageGenerator(filePath, dryRun).generate();
   } else {
     console.log(`Usage:
   selfage build
   selfage clean
   selfage run <relative file path> <pass-through flags>
+  selfage fmt <relative file path> <dryRun>
   selfage msg <relative file path> <dryRun>
   
   build: Compile all files.
   clean: Delete all files generated from compiling.
   run: Compile and run the specified file with the rest of the flags passed through.
+  fmt: Format the specified file with lint warnings, if any.
   msg: Generate implementions of MessageUtil for and overwrite the specified file..
 
   <relative file path>'s extension can be .js, .ts, a single ".", or no extension at all, but cannot be .d.ts. It will be transformed to ts or js file depending on the command.
