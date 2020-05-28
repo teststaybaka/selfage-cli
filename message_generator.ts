@@ -1,3 +1,4 @@
+import prettier from "prettier";
 import { readFileSync, writeFileSync } from "fs";
 import {
   forEachChild,
@@ -34,6 +35,7 @@ export class MessageGenerator {
     );
     forEachChild(sourceFile, (node) => this.visitTopDeclarations(node));
     this.prependImports();
+    this.content = prettier.format(this.content, { parser: "typescript" });
     if (this.dryRun) {
       console.log(this.content);
     } else {

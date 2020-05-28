@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path = require("path");
-import fs = require("fs");
 import prettier = require("prettier");
+import { readFileSync, writeFileSync } from "fs";
 import { buildAllFiles, BuildCleaner } from "./build";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
@@ -30,14 +30,14 @@ async function main(): Promise<void> {
   } else if (purpose === "fmt") {
     let filePath = forceFileExtensions(process.argv[3], ".ts");
     let dryRun = process.argv[4] === "dryRUn";
-    let codeToBeFormatted = fs.readFileSync(filePath).toString();
+    let codeToBeFormatted = readFileSync(filePath).toString();
     let codeFormatted = prettier.format(codeToBeFormatted, {
       parser: "typescript",
     });
     if (dryRun) {
       console.log(codeFormatted);
     } else {
-      fs.writeFileSync(filePath, codeFormatted);
+      writeFileSync(filePath, codeFormatted);
     }
   } else if (purpose === "msg") {
     let filePath = forceFileExtensions(process.argv[3], ".ts");
