@@ -20,8 +20,12 @@ async function main(): Promise<void> {
     spawnSync("node", [path.format(pathObj), ...passAlongArgs], {
       stdio: "inherit",
     });
-  } else if (purpose === "msg") {
+  } else if (purpose === 'fmt') {
     let pathObj = path.parse(process.argv[3]);
+    pathObj.ext = ".ts";
+    let dryRun = process.argv[4] === 'dryRUn';
+    spawnSync('');
+  } else if (purpose === "msg") {
     pathObj.base = undefined;
     pathObj.ext = ".ts";
     let dryRun = process.argv[4] === "dryRun";

@@ -19,11 +19,12 @@
   "homepage": "https://github.com/teststaybaka/selfage-cli#readme",
   "dependencies": {
     "@types/node": "^13.13.5",
-    "source-map-support": "^0.5.19"
+    "prettier": "2.0.5",
+    "source-map-support": "^0.5.19",
+    "typescript": "^3.9.2"
   },
   "devDependencies": {
-    "prettier": "2.0.5",
-    "typescript": "^3.9.2"
+    "@types/prettier": "^2.0.1"
   },
   "bin": {
     "selfage": "./main.js"
