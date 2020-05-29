@@ -1,5 +1,4 @@
-import prettier from "prettier";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync } from "fs";
 import {
   forEachChild,
   createSourceFile,
@@ -24,9 +23,9 @@ export class MessageGenerator {
   private namedImportsToPath = new Map<string, string>();
   private content = "";
 
-  public constructor(private fileName: string, private dryRun: boolean) {}
+  public constructor(private fileName: string) {}
 
-  public generate(): void {
+  public generate(): string {
     let sourceFile = createSourceFile(
       this.fileName,
       readFileSync(this.fileName).toString(),
@@ -35,12 +34,7 @@ export class MessageGenerator {
     );
     forEachChild(sourceFile, (node) => this.visitTopDeclarations(node));
     this.prependImports();
-    this.content = prettier.format(this.content, { parser: "typescript" });
-    if (this.dryRun) {
-      console.log(this.content);
-    } else {
-      writeFileSync(this.fileName, this.content);
-    }
+    return this.content;
   }
 
   private visitTopDeclarations(node: TsNode): void {

@@ -13,14 +13,16 @@ function parameterizedTest(
     let filePath = modulePath + ".ts";
     let originalContent = readFileSync(filePath);
     originalContents.set(filePath, originalContent);
-    new MessageGenerator(filePath, false).generate();
+    let contentGenerated = new MessageGenerator(filePath).generate();
+    writeFileSync(filePath, contentGenerated);
   }
   let filePath = testTargetModule + ".ts";
   let originalContent = readFileSync(filePath);
   originalContents.set(filePath, originalContent);
 
   // Execute
-  new MessageGenerator(filePath, false).generate();
+  let contentGenerated = new MessageGenerator(filePath).generate();
+  writeFileSync(filePath, contentGenerated);
 
   // Verify
   try {

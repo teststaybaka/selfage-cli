@@ -7,11 +7,21 @@ import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import "source-map-support/register";
 
+let DRY_RUN_FLAG = "dry_run";
+
 function forceFileExtensions(fileFromCommandLine: string, ext: string): string {
   let pathObj = path.parse(fileFromCommandLine);
   pathObj.base = undefined;
   pathObj.ext = ext;
   return path.format(pathObj);
+}
+
+function writeFile(filePath: string, content: string, dryRunArg: string): void {
+  if (dryRunArg === DRY_RUN_FLAG) {
+    console.log(content);
+  } else {
+    writeFileSync(filePath, content);
+  }
 }
 
 async function main(): Promise<void> {
@@ -29,27 +39,25 @@ async function main(): Promise<void> {
     });
   } else if (purpose === "fmt") {
     let filePath = forceFileExtensions(process.argv[3], ".ts");
-    let dryRun = process.argv[4] === "dryRUn";
     let codeToBeFormatted = readFileSync(filePath).toString();
     let codeFormatted = prettier.format(codeToBeFormatted, {
       parser: "typescript",
     });
-    if (dryRun) {
-      console.log(codeFormatted);
-    } else {
-      writeFileSync(filePath, codeFormatted);
-    }
+    writeFile(filePath, codeFormatted, process.argv[4]);
   } else if (purpose === "msg") {
     let filePath = forceFileExtensions(process.argv[3], ".ts");
-    let dryRun = process.argv[4] === "dryRun";
-    new MessageGenerator(filePath, dryRun).generate();
+    let contentGenerated = new MessageGenerator(filePath).generate();
+    let contentFormatted = prettier.format(contentGenerated, {
+      parser: "typescript",
+    });
+    writeFile(filePath, contentFormatted, process.argv[4]);
   } else {
     console.log(`Usage:
   selfage build
   selfage clean
   selfage run <relative file path> <pass-through flags>
-  selfage fmt <relative file path> <dryRun>
-  selfage msg <relative file path> <dryRun>
+  selfage fmt <relative file path> <${DRY_RUN_FLAG}>
+  selfage msg <relative file path> <${DRY_RUN_FLAG}>
   
   build: Compile all files.
   clean: Delete all files generated from compiling.
@@ -59,7 +67,7 @@ async function main(): Promise<void> {
 
   <relative file path>'s extension can be .js, .ts, a single ".", or no extension at all, but cannot be .d.ts. It will be transformed to ts or js file depending on the command.
   <pass-through flags> is the list of rest command line arguments which will be passed to the program being started as it is.
-  <dryRun> when typed verbatim, indicates a print of resulted file instead of overwriting the file in-place.
+  <${DRY_RUN_FLAG}> when typed verbatim, indicates a print of resulted file instead of overwriting the file in-place.
 `);
   }
 }
