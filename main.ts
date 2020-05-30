@@ -3,6 +3,7 @@ import path = require("path");
 import prettier = require("prettier");
 import { readFileSync, writeFileSync } from "fs";
 import { buildAllFiles, BuildCleaner } from "./build";
+import { sortImports } from './sort_imports';
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import "source-map-support/register";
@@ -39,11 +40,12 @@ async function main(): Promise<void> {
     });
   } else if (purpose === "fmt") {
     let filePath = forceFileExtensions(process.argv[3], ".ts");
-    let codeToBeFormatted = readFileSync(filePath).toString();
-    let codeFormatted = prettier.format(codeToBeFormatted, {
+    let contentToBeFormatted = readFileSync(filePath).toString();
+    sortImports(contentToBeFormatted);
+    let contentFormatted = prettier.format(contentToBeFormatted, {
       parser: "typescript",
     });
-    writeFile(filePath, codeFormatted, process.argv[4]);
+    writeFile(filePath, contentFormatted, process.argv[4]);
   } else if (purpose === "msg") {
     let filePath = forceFileExtensions(process.argv[3], ".ts");
     let contentGenerated = new MessageGenerator(filePath).generate();
