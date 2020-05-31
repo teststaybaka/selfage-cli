@@ -1,11 +1,12 @@
 #!/usr/bin/env node
+
 import path = require("path");
 import prettier = require("prettier");
-import { readFileSync, writeFileSync } from "fs";
-import { buildAllFiles, BuildCleaner } from "./build";
-import { sortImports } from './sort_imports';
+import { BuildCleaner, buildAllFiles } from "./build";
+import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
+import { readFileSync, writeFileSync } from "fs";
 import "source-map-support/register";
 
 let DRY_RUN_FLAG = "dry_run";
@@ -41,8 +42,8 @@ async function main(): Promise<void> {
   } else if (purpose === "fmt") {
     let filePath = forceFileExtensions(process.argv[3], ".ts");
     let contentToBeFormatted = readFileSync(filePath).toString();
-    sortImports(contentToBeFormatted);
-    let contentFormatted = prettier.format(contentToBeFormatted, {
+    let contentImportsSorted = new ImportsSorter(contentToBeFormatted).sort();
+    let contentFormatted = prettier.format(contentImportsSorted, {
       parser: "typescript",
     });
     writeFile(filePath, contentFormatted, process.argv[4]);
