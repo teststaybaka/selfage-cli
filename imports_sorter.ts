@@ -112,7 +112,12 @@ export class ImportsSorter {
   }
 
   private writeUncapturedContentInBetween(node: TsNode): void {
-    this.content += this.originalContent.substring(this.pos, node.getStart());
+    let newContent = this.originalContent
+      .substring(this.pos, node.getStart())
+      .trim();
+    if (newContent) {
+      this.content += newContent + "\n";
+    }
     this.pos = node.getStart() + node.getWidth();
   }
 }

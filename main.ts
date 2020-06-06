@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 import path = require("path");
 import prettier = require("prettier");
 import { BuildCleaner, buildAllFiles } from "./build";
