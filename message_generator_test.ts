@@ -65,7 +65,7 @@ function parameterizedTest(
 
 /**
  * Covers making fields optional, making interfaces exported, parsing JSON data,
- * excluding unwanted fields from JSON data, and not interfering by comments.
+ * excluding unwanted fields from JSON data, and preserving comments.
  */
 class GenerateBasicMessages implements TestCase {
   public name = "GenerateBasicMessages";
