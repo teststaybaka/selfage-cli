@@ -17,7 +17,6 @@ export class ImportsSorter {
   private namespaceImports: Map<string, string> = new Map();
   private namedImports: Map<string, Set<string>> = new Map();
   private sideEffectImports: Set<string> = new Set();
-  private pos = 0;
   private content = "";
 
   public constructor(private originalContent: string) {}
@@ -29,6 +28,8 @@ export class ImportsSorter {
       ScriptTarget.ES5,
       true
     );
+
+    let endPos = 0;
     for (let node of sourceFile.statements) {
       if (node.kind === SyntaxKind.ImportEqualsDeclaration) {
         let importNode = node as ImportEqualsDeclaration;
@@ -72,18 +73,13 @@ export class ImportsSorter {
           let names = this.namedImports.get(importPath);
           for (let specifier of (importNode.importClause
             .namedBindings as NamedImports).elements) {
-            if (specifier.propertyName) {
-              names.add(
-                specifier.propertyName.text + " as " + specifier.name.text
-              );
-            } else {
-              names.add(specifier.name.text);
-            }
+            names.add(specifier.getText());
           }
           this.writeUncapturedContentInBetween(node);
           continue;
         }
       }
+      endPos = node.getFullStart();
       break;
     }
 
@@ -107,17 +103,16 @@ export class ImportsSorter {
     for (let path of [...this.sideEffectImports].sort()) {
       this.content += `import '${path}';\n`;
     }
-    this.content += this.originalContent.substring(this.pos);
+    this.content += this.originalContent.substring(endPos);
     return this.content;
   }
 
   private writeUncapturedContentInBetween(node: TsNode): void {
     let newContent = this.originalContent
-      .substring(this.pos, node.getStart())
+      .substring(node.getFullStart(), node.getStart())
       .trim();
     if (newContent) {
       this.content += newContent + "\n";
     }
-    this.pos = node.getStart() + node.getWidth();
   }
 }
