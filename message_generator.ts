@@ -1,19 +1,18 @@
-import { readFileSync } from "fs";
 import {
-  forEachChild,
-  createSourceFile,
-  ScriptTarget,
-  SyntaxKind,
-  Node as TsNode,
+  EnumDeclaration,
+  Identifier,
   ImportDeclaration,
   InterfaceDeclaration,
-  EnumDeclaration,
-  StringLiteral,
   NamedImports,
-  Identifier,
-  PropertySignature,
-  TypeReferenceNode,
+  Node as TsNode,
   NumericLiteral,
+  PropertySignature,
+  ScriptTarget,
+  StringLiteral,
+  SyntaxKind,
+  TypeReferenceNode,
+  createSourceFile,
+  forEachChild,
 } from "typescript";
 
 export class MessageGenerator {
@@ -23,14 +22,14 @@ export class MessageGenerator {
   private namedImportsToPath = new Map<string, string>();
   private content = "";
 
-  public constructor(private fileName: string) {}
+  public constructor(private originalContent: string) {}
 
   public generate(): string {
     let sourceFile = createSourceFile(
-      this.fileName,
-      readFileSync(this.fileName).toString(),
+      "placeholder",
+      this.originalContent,
       ScriptTarget.ES5,
-      false
+      true
     );
     forEachChild(sourceFile, (node) => this.visitTopDeclarations(node));
     this.prependImports();
@@ -65,7 +64,7 @@ export class MessageGenerator {
 
   private generateMessageParser(interfaceNode: InterfaceDeclaration): void {
     let interfaceName = interfaceNode.name.text;
-    this.content += `
+    this.content += `${this.getLeadingComments(interfaceNode)}
 export interface ${interfaceName}`;
 
     if (interfaceNode.heritageClauses) {
@@ -96,7 +95,7 @@ export interface ${interfaceName}`;
         fieldType = ((field.type as TypeReferenceNode).typeName as Identifier)
           .text;
       }
-      this.content += `
+      this.content += `${this.getLeadingComments(member)}
   ${fieldName}?: ${fieldType},`;
     }
 
@@ -121,7 +120,7 @@ export class ${interfaceName}Util implements MessageUtil<${interfaceName}> {
     if (interfaceNode.heritageClauses) {
       for (let baseType of interfaceNode.heritageClauses[0].types) {
         let baseTypeName = (baseType.expression as Identifier).text;
-        let utilName = this.createUtilName(baseTypeName);
+        let utilName = MessageGenerator.createUtilName(baseTypeName);
         this.importUtilIfTypeIsImported(baseTypeName, utilName);
         this.content += `
     ${utilName}.from(obj, ret);`;
@@ -151,14 +150,14 @@ export class ${interfaceName}Util implements MessageUtil<${interfaceName}> {
       ret.${fieldName} = obj.${fieldName};
     }`;
       } else if (nestedFieldType) {
-        let utilName = this.createUtilName(nestedFieldType);
+        let utilName = MessageGenerator.createUtilName(nestedFieldType);
         this.importUtilIfTypeIsImported(nestedFieldType, utilName);
         this.content += `
     ret.${fieldName} = ${utilName}.from(obj.${fieldName});`;
       }
     }
 
-    let singletonUtilName = this.createUtilName(interfaceName);
+    let singletonUtilName = MessageGenerator.createUtilName(interfaceName);
     this.content += `
     return ret;
   }
@@ -168,7 +167,18 @@ export let ${singletonUtilName} = new ${interfaceName}Util();
 `;
   }
 
-  private createUtilName(typeName: string): string {
+  private getLeadingComments(node: TsNode): string {
+    let comments = this.originalContent
+      .substring(node.getFullStart(), node.getStart())
+      .trim();
+    if (comments) {
+      return "\n" + comments;
+    } else {
+      return "";
+    }
+  }
+
+  private static createUtilName(typeName: string): string {
     let upperCaseSnakedName = typeName.charAt(0);
     for (let i = 1; i < typeName.length; i++) {
       let char = typeName.charAt(i);
@@ -190,13 +200,13 @@ export let ${singletonUtilName} = new ${interfaceName}Util();
 
   private generateEnumParser(enumNode: EnumDeclaration): void {
     let enumName = enumNode.name.text;
-    this.content += `
+    this.content += `${this.getLeadingComments(enumNode)}
 export enum ${enumName} {`;
 
     for (let member of enumNode.members) {
       let enumValueName = (member.name as Identifier).text;
       let enumValueValue = (member.initializer as NumericLiteral).text;
-      this.content += `
+      this.content += `${this.getLeadingComments(member)}
   ${enumValueName} = ${enumValueValue},`;
     }
 
@@ -204,15 +214,17 @@ export enum ${enumName} {`;
 }
 `;
 
-    let singletonUtilName = this.createUtilName(enumName);
+    let singletonUtilName = MessageGenerator.createUtilName(enumName);
     this.content += `
 export class ${enumName}Util implements MessageUtil<${enumName}> {
   public from(obj?: any): ${enumName} {
-    if (!obj || typeof obj !== 'number' || !(obj in ${enumName})) {
-      return undefined;
-    } else {
+    if (typeof obj === 'number' && obj in ${enumName}) {
       return obj;
     }
+    if (typeof obj === 'string' && obj in ${enumName}) {
+      return ${enumName}[obj as keyof typeof ${enumName}];
+    }
+    return undefined;
   }
 }
 

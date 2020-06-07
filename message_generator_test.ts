@@ -1,11 +1,13 @@
+import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
-import { TestCase, runTests } from "selfage/test_base";
-import { MessageGenerator } from "./message_generator";
+import { TestCase, assert, runTests } from "selfage/test_base";
 
 function parameterizedTest(
   testTargetModule: string,
-  modulesImported: string[] = []
+  modulesImported: string[] = [],
+  textsToMatch: string[] = [],
+  textsToExclude: string[] = []
 ) {
   // Prepare
   let originalContents: Map<string, Buffer> = new Map();
@@ -13,7 +15,9 @@ function parameterizedTest(
     let filePath = modulePath + ".ts";
     let originalContent = readFileSync(filePath);
     originalContents.set(filePath, originalContent);
-    let contentGenerated = new MessageGenerator(filePath).generate();
+    let contentGenerated = new MessageGenerator(
+      originalContent.toString()
+    ).generate();
     writeFileSync(filePath, contentGenerated);
   }
   let filePath = testTargetModule + ".ts";
@@ -21,11 +25,19 @@ function parameterizedTest(
   originalContents.set(filePath, originalContent);
 
   // Execute
-  let contentGenerated = new MessageGenerator(filePath).generate();
+  let contentGenerated = new MessageGenerator(
+    originalContent.toString()
+  ).generate();
   writeFileSync(filePath, contentGenerated);
 
   // Verify
   try {
+    for (let text of textsToMatch) {
+      assert(contentGenerated.includes(text), `${text} is not found.`);
+    }
+    for (let text of textsToExclude) {
+      assert(!contentGenerated.includes(text), `${text} is found.`);
+    }
     // Use `tsc` to check if generated messages contain any syntax error and can
     // be properly imported in the corresponding prober module. Execute the
     // prober which tests if generated functions work properly.
@@ -52,14 +64,25 @@ function parameterizedTest(
 }
 
 /**
- * Covers making fields optional and interfaces exported, correctly parsing
- * JSON data, and excluding unwanted fields.
+ * Covers making fields optional, making interfaces exported, parsing JSON data,
+ * excluding unwanted fields from JSON data, and not interfering by comments.
  */
 class GenerateBasicMessages implements TestCase {
   public name = "GenerateBasicMessages";
 
   public async execute() {
-    parameterizedTest("./test_data/test_message_basic");
+    parameterizedTest(
+      "./test_data/test_message_basic",
+      [],
+      [
+        "// Comment1",
+        "// Comment2",
+        "// Comment3",
+        "// Comment4",
+        "// Comment5",
+      ],
+      ["// Ignored"]
+    );
   }
 }
 

@@ -53,7 +53,10 @@ async function main(): Promise<void> {
     writeFile(filePath, contentFormatted, process.argv[4]);
   } else if (purpose === PURPOSE_MESSAGE) {
     let filePath = forceFileExtensions(process.argv[3], ".ts");
-    let contentGenerated = new MessageGenerator(filePath).generate();
+    let contentToBeProcessed = readFileSync(filePath).toString();
+    let contentGenerated = new MessageGenerator(
+      contentToBeProcessed
+    ).generate();
     let contentFormatted = prettier.format(contentGenerated, {
       parser: "typescript",
     });
