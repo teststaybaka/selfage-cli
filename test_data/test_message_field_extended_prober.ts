@@ -1,8 +1,9 @@
-import { assert } from "selfage/test_base";
 import {
-  ExtendNestedData,
   EXTEND_NESTED_DATA_UTIL,
+  ExtendNestedData,
 } from "./test_message_field_extended";
+import { assert } from "selfage/test_base";
+import "source-map-support/register";
 
 // Prepare
 let extendNestedData: ExtendNestedData = {

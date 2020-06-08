@@ -2,6 +2,9 @@ interface BasicData {
   numberField: number;
   stringField: string;
   booleanField: boolean;
+  numberArrayField: number[];
+  stringArrayField: string[];
+  booleanArrayField: boolean[];
 }
 
 // Comment1
@@ -11,6 +14,9 @@ export interface ExportsOptionals {
   stringField?: string;
   // Comment3
   booleanField?: boolean;
+  numberArrayField?: number[];
+  stringArrayField?: string[];
+  booleanArrayField?: boolean[];
   // Ignored
 }
 

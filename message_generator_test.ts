@@ -43,7 +43,12 @@ function parameterizedTest(
     // prober which tests if generated functions work properly.
     let compilingRes = spawnSync(
       "tsc",
-      ["--noUnusedLocals", "--noImplicitAny", testTargetModule + "_prober.ts"],
+      [
+        "--noUnusedLocals",
+        "--noImplicitAny",
+        "--sourceMap",
+        testTargetModule + "_prober.ts",
+      ],
       { stdio: "inherit" }
     );
     if (compilingRes.status !== 0) {
@@ -64,8 +69,8 @@ function parameterizedTest(
 }
 
 /**
- * Covers making fields optional, making interfaces exported, parsing JSON data,
- * excluding unwanted fields from JSON data, and preserving comments.
+ * Covers making fields optional, making interfaces exported, parsing object,
+ * excluding unwanted fields from object, and preserving comments.
  */
 class GenerateBasicMessages implements TestCase {
   public name = "GenerateBasicMessages";

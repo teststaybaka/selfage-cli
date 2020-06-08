@@ -1,11 +1,12 @@
-import { assert } from "selfage/test_base";
-import {
-  ExtendedData,
-  EXTENDED_DATA_UTIL,
-  NestedData,
-  NESTED_DATA_UTIL,
-} from "./test_message_imported";
 import { Color } from "./test_message_basic";
+import {
+  EXTENDED_DATA_UTIL,
+  ExtendedData,
+  NESTED_DATA_UTIL,
+  NestedData,
+} from "./test_message_imported";
+import { assert } from "selfage/test_base";
+import "source-map-support/register";
 
 // Prepare
 let extendedData: ExtendedData = {

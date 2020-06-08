@@ -1,15 +1,16 @@
 import {
+  ArrayTypeNode,
   EnumDeclaration,
   Identifier,
   ImportDeclaration,
   InterfaceDeclaration,
   NamedImports,
   Node as TsNode,
-  NumericLiteral,
   PropertySignature,
   ScriptTarget,
   StringLiteral,
   SyntaxKind,
+  TypeNode,
   TypeReferenceNode,
   createSourceFile,
   forEachChild,
@@ -42,11 +43,11 @@ export class MessageGenerator {
     }
 
     if (node.kind === SyntaxKind.InterfaceDeclaration) {
-      this.generateMessageParser(node as InterfaceDeclaration);
+      this.generateMessageUtil(node as InterfaceDeclaration);
     }
 
     if (node.kind === SyntaxKind.EnumDeclaration) {
-      this.generateEnumParser(node as EnumDeclaration);
+      this.generateEnumUtil(node as EnumDeclaration);
     }
   }
 
@@ -62,39 +63,19 @@ export class MessageGenerator {
     this.pathToNamedImports.set(importPath, new Set(namedImports));
   }
 
-  private generateMessageParser(interfaceNode: InterfaceDeclaration): void {
+  private generateMessageUtil(interfaceNode: InterfaceDeclaration): void {
     let interfaceName = interfaceNode.name.text;
     this.content += `${this.getLeadingComments(interfaceNode)}
 export interface ${interfaceName}`;
-
     if (interfaceNode.heritageClauses) {
-      this.content += " extends";
-      let isFirst = true;
-      for (let baseType of interfaceNode.heritageClauses[0].types) {
-        if (isFirst) {
-          this.content += ` ${(baseType.expression as Identifier).text}`;
-          isFirst = false;
-        } else {
-          this.content += `, ${(baseType.expression as Identifier).text}`;
-        }
-      }
+      this.content += " " + interfaceNode.heritageClauses[0].getText();
     }
     this.content += " {";
 
     for (let member of interfaceNode.members) {
       let field = member as PropertySignature;
       let fieldName = (field.name as Identifier).text;
-      let fieldType = "";
-      if (field.type.kind === SyntaxKind.StringKeyword) {
-        fieldType = "string";
-      } else if (field.type.kind === SyntaxKind.BooleanKeyword) {
-        fieldType = "boolean";
-      } else if (field.type.kind === SyntaxKind.NumberKeyword) {
-        fieldType = "number";
-      } else if (field.type.kind === SyntaxKind.TypeReference) {
-        fieldType = ((field.type as TypeReferenceNode).typeName as Identifier)
-          .text;
-      }
+      let fieldType = field.type.getText();
       this.content += `${this.getLeadingComments(member)}
   ${fieldName}?: ${fieldType},`;
     }
@@ -130,30 +111,50 @@ export class ${interfaceName}Util implements MessageUtil<${interfaceName}> {
     for (let member of interfaceNode.members) {
       let field = member as PropertySignature;
       let fieldName = (field.name as Identifier).text;
-      let fieldType = "";
-      if (field.type.kind === SyntaxKind.StringKeyword) {
-        fieldType = "string";
-      } else if (field.type.kind === SyntaxKind.BooleanKeyword) {
-        fieldType = "boolean";
-      } else if (field.type.kind === SyntaxKind.NumberKeyword) {
-        fieldType = "number";
-      }
-      let nestedFieldType = "";
-      if (field.type.kind === SyntaxKind.TypeReference) {
-        nestedFieldType = ((field.type as TypeReferenceNode)
-          .typeName as Identifier).text;
-      }
-
-      if (fieldType) {
-        this.content += `
-    if (typeof obj.${fieldName} === '${fieldType}') {
+      if (field.type.kind !== SyntaxKind.ArrayType) {
+        let {
+          basicType,
+          nestedType,
+          nestedTypeUtil,
+        } = this.getVariableTypeAndImportUtilIfNecessary(field.type);
+        if (basicType) {
+          this.content += `
+    if (typeof obj.${fieldName} === '${basicType}') {
       ret.${fieldName} = obj.${fieldName};
     }`;
-      } else if (nestedFieldType) {
-        let utilName = MessageGenerator.createUtilName(nestedFieldType);
-        this.importUtilIfTypeIsImported(nestedFieldType, utilName);
+        } else if (nestedType) {
+          this.content += `
+    ret.${fieldName} = ${nestedTypeUtil}.from(obj.${fieldName});`;
+        }
+      } else {
+        let {
+          basicType,
+          nestedType,
+          nestedTypeUtil,
+        } = this.getVariableTypeAndImportUtilIfNecessary(
+          (field.type as ArrayTypeNode).elementType
+        );
+
         this.content += `
-    ret.${fieldName} = ${utilName}.from(obj.${fieldName});`;
+    if (Array.isArray(obj.${fieldName})) {
+      ret.${fieldName} = [];
+      for (let element of obj.${fieldName}) {`;
+        if (basicType) {
+          this.content += `
+        if (typeof element === '${basicType}') {
+          ret.${fieldName}.push(element);
+        }`;
+        } else if (nestedType) {
+          this.content += `
+        let parsedElement = ${nestedTypeUtil}.from(element);
+        if (parsedElement !== undefined) {
+          ret.${fieldName}.push(parsedElement);
+        }
+        `;
+        }
+        this.content += `
+      }
+    }`;
       }
     }
 
@@ -191,6 +192,32 @@ export let ${singletonUtilName} = new ${interfaceName}Util();
     return upperCaseSnakedName + "_UTIL";
   }
 
+  private getVariableTypeAndImportUtilIfNecessary(
+    typeNode: TypeNode
+  ): { basicType: string; nestedType: string; nestedTypeUtil: string } {
+    let basicType = "";
+    if (typeNode.kind === SyntaxKind.StringKeyword) {
+      basicType = "string";
+    } else if (typeNode.kind === SyntaxKind.BooleanKeyword) {
+      basicType = "boolean";
+    } else if (typeNode.kind === SyntaxKind.NumberKeyword) {
+      basicType = "number";
+    }
+    let nestedType = "";
+    let nestedTypeUtil = "";
+    if (typeNode.kind === SyntaxKind.TypeReference) {
+      nestedType = ((typeNode as TypeReferenceNode).typeName as Identifier)
+        .text;
+      nestedTypeUtil = MessageGenerator.createUtilName(nestedType);
+      this.importUtilIfTypeIsImported(nestedType, nestedTypeUtil);
+    }
+    return {
+      basicType: basicType,
+      nestedType: nestedType,
+      nestedTypeUtil: nestedTypeUtil,
+    };
+  }
+
   private importUtilIfTypeIsImported(typeName: string, utilName: string): void {
     let importPath = this.namedImportsToPath.get(typeName);
     if (importPath) {
@@ -198,18 +225,13 @@ export let ${singletonUtilName} = new ${interfaceName}Util();
     }
   }
 
-  private generateEnumParser(enumNode: EnumDeclaration): void {
+  private generateEnumUtil(enumNode: EnumDeclaration): void {
     let enumName = enumNode.name.text;
     this.content += `${this.getLeadingComments(enumNode)}
 export enum ${enumName} {`;
-
     for (let member of enumNode.members) {
-      let enumValueName = (member.name as Identifier).text;
-      let enumValueValue = (member.initializer as NumericLiteral).text;
-      this.content += `${this.getLeadingComments(member)}
-  ${enumValueName} = ${enumValueValue},`;
+      this.content += member.getFullText() + ",";
     }
-
     this.content += `
 }
 `;

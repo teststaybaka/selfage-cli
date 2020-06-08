@@ -1,10 +1,11 @@
-import { assert } from "selfage/test_base";
 import {
-  ExtendedData,
-  EXTENDED_DATA_UTIL,
-  ExtendedData2,
   EXTENDED_DATA2_UTIL,
+  EXTENDED_DATA_UTIL,
+  ExtendedData,
+  ExtendedData2,
 } from "./test_message_extended";
+import { assert } from "selfage/test_base";
+import "source-map-support/register";
 
 // Prepare
 let extendedData: ExtendedData = {

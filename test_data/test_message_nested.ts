@@ -14,4 +14,5 @@ interface NestedData {
   basicData: BasicData;
   basicData2: BasicData2;
   testEnum: TestEnum;
+  basicDataArray: BasicData[];
 }
