@@ -6,7 +6,7 @@ import * as ts from 'typescript'; // Comment12
 import { TestColor2 as TestColor, TestObject, } from './test_interface'; // Comment 11
 // Comment1
 import 'ts';
-import ts = require('tsts');
+import ts = require('typescript');
 import tss from 'typescripttypescript';
 import * as tss from 'typescripttypescript';
 import { TestObject, TestObject, } from './test_interface/ts';

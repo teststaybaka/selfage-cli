@@ -34,9 +34,9 @@ export class ImportsSorter {
       if (node.kind === SyntaxKind.ImportEqualsDeclaration) {
         let importNode = node as ImportEqualsDeclaration;
         this.equalImports.set(
-          importNode.name.text,
           ((importNode.moduleReference as ExternalModuleReference)
-            .expression as StringLiteral).text
+            .expression as StringLiteral).text,
+          importNode.name.text
         );
         this.writeUncapturedContentInBetween(node);
         continue;
