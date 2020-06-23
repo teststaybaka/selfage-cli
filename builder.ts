@@ -44,8 +44,7 @@ export class Builder {
     );
     let promisesToBundle = urlToBundlesHolder.urlToBundles.map(
       async (urlToBundle): Promise<void> => {
-        let buildInfoFile =
-          urlToBundle.modulePath + BUILD_INFO_FILE_EXT;
+        let buildInfoFile = urlToBundle.modulePath + BUILD_INFO_FILE_EXT;
         if (!(await Builder.needsBundle(buildInfoFile))) {
           return;
         }
@@ -128,7 +127,7 @@ export class BuildCleaner {
     ".js",
     ".js.map",
     ".tsbuildinfo",
-    BUILD_INFO_FILE_EXT, 
+    BUILD_INFO_FILE_EXT,
     BUNDLE_EXT,
     GZIP_EXT,
   ];
