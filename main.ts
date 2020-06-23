@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path = require("path");
 import prettier = require("prettier");
-import { BuildCleaner, Builder } from "./build";
+import { BuildCleaner, Builder } from "./builder";
 import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";

@@ -16,9 +16,9 @@ import { StreamReader } from "selfage/stream_reader";
 import { URL_TO_BUNDLES_HOLDER_UTIL } from "selfage/url_to_bundle";
 
 let pipeline = util.promisify(stream.pipeline);
+let BUILD_INFO_FILE_EXT = ".buildinfo";
 
 export class Builder {
-  private static BUILD_INFO_FILE_EXT = ".buildinfo";
   private static FILE_NOT_EXISTS_ERROR_CODE = "ENOENT";
 
   private streamReader = new StreamReader();
@@ -45,7 +45,7 @@ export class Builder {
     let promisesToBundle = urlToBundlesHolder.urlToBundles.map(
       async (urlToBundle): Promise<void> => {
         let buildInfoFile =
-          urlToBundle.modulePath + Builder.BUILD_INFO_FILE_EXT;
+          urlToBundle.modulePath + BUILD_INFO_FILE_EXT;
         if (!(await Builder.needsBundle(buildInfoFile))) {
           return;
         }
@@ -127,6 +127,8 @@ export class BuildCleaner {
     ".d.ts",
     ".js",
     ".js.map",
+    ".tsbuildinfo",
+    BUILD_INFO_FILE_EXT, 
     BUNDLE_EXT,
     GZIP_EXT,
   ];
