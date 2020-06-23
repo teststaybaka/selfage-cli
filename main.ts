@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import path = require("path");
 import prettier = require("prettier");
-import { BuildCleaner, buildAllFiles } from "./build";
+import { BuildCleaner, Builder } from "./build";
 import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
+import { DEFAULT_URL_TO_BUNDLES_FILE } from "selfage/common";
 import "source-map-support/register";
 
 let PURPOSE_BUILD = "build";
+let PURPOSE_BUNDLE = "bundle";
 let PURPOSE_CLEAN = "clean";
 let PURPOSE_RUN = "run";
 let PURPOSE_FORMAT = "fmt";
@@ -33,11 +35,15 @@ function writeFile(filePath: string, content: string, dryRunArg: string): void {
 async function main(): Promise<void> {
   let purpose = process.argv[2];
   if (purpose === PURPOSE_BUILD) {
-    buildAllFiles();
+    new Builder().build();
+  } else if (purpose === PURPOSE_BUNDLE) {
+    let builder = new Builder();
+    builder.build();
+    await builder.bundle(DEFAULT_URL_TO_BUNDLES_FILE);
   } else if (purpose === PURPOSE_CLEAN) {
     BuildCleaner.clean();
   } else if (purpose === PURPOSE_RUN) {
-    buildAllFiles();
+    new Builder().build();
     let filePath = forceFileExtensions(process.argv[3], ".js");
     let passAlongArgs = process.argv.slice(4);
     spawnSync("node", [filePath, ...passAlongArgs], {
@@ -64,12 +70,14 @@ async function main(): Promise<void> {
   } else {
     console.log(`Usage:
   selfage ${PURPOSE_BUILD}
+  selfage ${PURPOSE_BUNDLE}
   selfage ${PURPOSE_CLEAN}
   selfage ${PURPOSE_RUN} <relative file path> <pass-through flags>
   selfage ${PURPOSE_FORMAT} <relative file path> <${DRY_RUN_FLAG}>
   selfage ${PURPOSE_MESSAGE} <relative file path> <${DRY_RUN_FLAG}>
   
-  ${PURPOSE_BUILD}: Compile all files.
+  ${PURPOSE_BUILD}: Build/Compile all files.
+  ${PURPOSE_BUNDLE}: Build and bundle front-end files according to the config in ${DEFAULT_URL_TO_BUNDLES_FILE}.
   ${PURPOSE_CLEAN}: Delete all files generated from compiling.
   ${PURPOSE_RUN}: Compile and run the specified file with the rest of the flags passed through.
   ${PURPOSE_FORMAT}: Format the specified file with lint warnings, if any.
