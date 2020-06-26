@@ -1,0 +1,6 @@
+{
+  "urlToBundles": [{
+    "url": "trivial",
+    "modulePath": "./test_data/bundle_test/main"
+  }]
+}

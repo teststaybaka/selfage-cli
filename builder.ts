@@ -6,17 +6,17 @@ import UglifyJS = require("uglify-js");
 import util = require("util");
 import zlib = require("zlib");
 import {
-  BUILD_INFO_HOLDER_UTIL,
-  BuildInfo,
-  BuildInfoHolder,
-} from "./build_info";
+  BUNDLE_INFO_HOLDER_UTIL,
+  BundleInfo,
+  BundleInfoHolder,
+} from "./bundle_info";
 import { spawnSync } from "child_process";
 import { BUNDLE_EXT, GZIP_EXT } from "selfage/common";
 import { StreamReader } from "selfage/stream_reader";
 import { URL_TO_BUNDLES_HOLDER_UTIL } from "selfage/url_to_bundle";
 
 let pipeline = util.promisify(stream.pipeline);
-let BUILD_INFO_FILE_EXT = ".buildinfo";
+let BUNDLE_INFO_FILE_EXT = ".bundleinfo";
 
 export class Builder {
   private static FILE_NOT_EXISTS_ERROR_CODE = "ENOENT";
@@ -44,8 +44,8 @@ export class Builder {
     );
     let promisesToBundle = urlToBundlesHolder.urlToBundles.map(
       async (urlToBundle): Promise<void> => {
-        let buildInfoFile = urlToBundle.modulePath + BUILD_INFO_FILE_EXT;
-        if (!(await Builder.needsBundle(buildInfoFile))) {
+        let bundleInfoFile = urlToBundle.modulePath + BUNDLE_INFO_FILE_EXT;
+        if (!(await Builder.needsBundle(bundleInfoFile))) {
           return;
         }
         let sourceFile = urlToBundle.modulePath + ".js";
@@ -75,17 +75,20 @@ export class Builder {
           )
         );
 
-        let buildInfos: BuildInfo[] = [];
-        let promisesToCollectBuildInfos = involvedFiles.map(
+        let bundleInfos: BundleInfo[] = [];
+        let promisesToCollectBundleInfos = involvedFiles.map(
           async (file): Promise<void> => {
             let fileStat = await fs.promises.stat(file);
-            buildInfos.push({ fileName: file, mtimeMs: fileStat.mtimeMs });
+            bundleInfos.push({ fileName: file, mtimeMs: fileStat.mtimeMs });
           }
         );
-        await Promise.all(promisesToCollectBuildInfos);
-        let buildInfoHolder: BuildInfoHolder = { buildInfos: buildInfos };
+        await Promise.all(promisesToCollectBundleInfos);
+        let bundleInfoHolder: BundleInfoHolder = { bundleInfos: bundleInfos };
         promisesToWrite.push(
-          fs.promises.writeFile(buildInfoFile, JSON.stringify(buildInfoHolder))
+          fs.promises.writeFile(
+            bundleInfoFile,
+            JSON.stringify(bundleInfoHolder)
+          )
         );
         await Promise.all(promisesToWrite);
       }
@@ -93,10 +96,10 @@ export class Builder {
     await Promise.all(promisesToBundle);
   }
 
-  private static async needsBundle(buildInfoFile: string): Promise<boolean> {
-    let buildInfoBuffer: Buffer;
+  private static async needsBundle(bundleInfoFile: string): Promise<boolean> {
+    let bundleInfoBuffer: Buffer;
     try {
-      buildInfoBuffer = await fs.promises.readFile(buildInfoFile);
+      bundleInfoBuffer = await fs.promises.readFile(bundleInfoFile);
     } catch (e) {
       if (e.code === Builder.FILE_NOT_EXISTS_ERROR_CODE) {
         return true;
@@ -105,13 +108,13 @@ export class Builder {
       }
     }
 
-    let buildInfoHolder = BUILD_INFO_HOLDER_UTIL.from(
-      JSON.parse(buildInfoBuffer.toString())
+    let bundleInfoHolder = BUNDLE_INFO_HOLDER_UTIL.from(
+      JSON.parse(bundleInfoBuffer.toString())
     );
-    let promisesToCheck = buildInfoHolder.buildInfos.map(
-      async (buildInfo): Promise<boolean> => {
-        let fileStats = await fs.promises.stat(buildInfo.fileName);
-        return fileStats.mtimeMs > buildInfo.mtimeMs;
+    let promisesToCheck = bundleInfoHolder.bundleInfos.map(
+      async (bundleInfo): Promise<boolean> => {
+        let fileStats = await fs.promises.stat(bundleInfo.fileName);
+        return fileStats.mtimeMs > bundleInfo.mtimeMs;
       }
     );
     return (await Promise.all(promisesToCheck)).some((updated): boolean => {
@@ -127,7 +130,7 @@ export class BuildCleaner {
     ".js",
     ".js.map",
     ".tsbuildinfo",
-    BUILD_INFO_FILE_EXT,
+    BUNDLE_INFO_FILE_EXT,
     BUNDLE_EXT,
     GZIP_EXT,
   ];
