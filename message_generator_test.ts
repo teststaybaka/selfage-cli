@@ -42,8 +42,9 @@ function parameterizedTest(
     // be properly imported in the corresponding prober module. Execute the
     // prober which tests if generated functions work properly.
     let compilingRes = spawnSync(
-      "tsc",
+      "npx",
       [
+        "tsc",
         "--noUnusedLocals",
         "--noImplicitAny",
         "--sourceMap",
