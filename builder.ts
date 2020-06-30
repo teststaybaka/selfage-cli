@@ -62,16 +62,17 @@ export class Builder {
           browserifyHandler.bundle()
         );
         let minifiedCode = UglifyJS.minify(code).code;
-        promisesToWrite.push(fs.promises.writeFile(targetFile, minifiedCode));
+        let htmlContent = Builder.embedIntoHtml(minifiedCode);
+        promisesToWrite.push(fs.promises.writeFile(targetFile, htmlContent));
 
-        let writeStreamOfCompressedCode = fs.createWriteStream(
+        let writeStreamOfCompressedHtmlContent = fs.createWriteStream(
           compressedTargetFile
         );
         promisesToWrite.push(
           pipeline(
-            stream.Readable.from(minifiedCode),
+            stream.Readable.from(htmlContent),
             zlib.createGzip(),
-            writeStreamOfCompressedCode
+            writeStreamOfCompressedHtmlContent
           )
         );
 
@@ -120,6 +121,11 @@ export class Builder {
     return (await Promise.all(promisesToCheck)).some((updated): boolean => {
       return updated;
     });
+  }
+
+  private static embedIntoHtml(jsCode: string): string {
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>
+      <script type="text/javascript">${jsCode}</script></body></html>`;
   }
 }
 
