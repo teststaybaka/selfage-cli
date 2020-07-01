@@ -136,8 +136,8 @@ export class ${interfaceName}Util implements MessageUtil<${interfaceName}> {
         );
 
         this.content += `
+    ret.${fieldName} = [];
     if (Array.isArray(obj.${fieldName})) {
-      ret.${fieldName} = [];
       for (let element of obj.${fieldName}) {`;
         if (basicType) {
           this.content += `
