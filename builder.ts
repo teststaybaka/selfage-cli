@@ -11,7 +11,11 @@ import {
   BundleInfoHolder,
 } from "./bundle_info";
 import { spawnSync } from "child_process";
-import { BUNDLE_EXT, GZIP_EXT } from "selfage/common";
+import {
+  BUNDLE_EXT,
+  FILE_NOT_EXISTS_ERROR_CODE,
+  GZIP_EXT,
+} from "selfage/common";
 import { StreamReader } from "selfage/stream_reader";
 import { URL_TO_BUNDLES_HOLDER_UTIL } from "selfage/url_to_bundle";
 
@@ -19,8 +23,6 @@ let pipeline = util.promisify(stream.pipeline);
 let BUNDLE_INFO_FILE_EXT = ".bundleinfo";
 
 export class Builder {
-  private static FILE_NOT_EXISTS_ERROR_CODE = "ENOENT";
-
   private streamReader = new StreamReader();
 
   public build(): void {
@@ -32,7 +34,7 @@ export class Builder {
     try {
       urlToBundlesBuffer = await fs.promises.readFile(urlToBundlesFile);
     } catch (e) {
-      if (e.code === Builder.FILE_NOT_EXISTS_ERROR_CODE) {
+      if (e.code === FILE_NOT_EXISTS_ERROR_CODE) {
         return;
       } else {
         throw e;
@@ -102,7 +104,7 @@ export class Builder {
     try {
       bundleInfoBuffer = await fs.promises.readFile(bundleInfoFile);
     } catch (e) {
-      if (e.code === Builder.FILE_NOT_EXISTS_ERROR_CODE) {
+      if (e.code === FILE_NOT_EXISTS_ERROR_CODE) {
         return true;
       } else {
         throw e;
