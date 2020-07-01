@@ -6,7 +6,7 @@ import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
-import { DEFAULT_URL_TO_BUNDLES_FILE } from "selfage/common";
+import { URL_TO_BUNDLES_CONFIG_FILE } from "selfage/common";
 import "source-map-support/register";
 
 let PURPOSE_BUILD = "build";
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
   } else if (purpose === PURPOSE_BUNDLE) {
     let builder = new Builder();
     builder.build();
-    await builder.bundle(DEFAULT_URL_TO_BUNDLES_FILE);
+    await builder.bundle(URL_TO_BUNDLES_CONFIG_FILE);
   } else if (purpose === PURPOSE_CLEAN) {
     BuildCleaner.clean();
   } else if (purpose === PURPOSE_RUN) {
@@ -77,7 +77,7 @@ async function main(): Promise<void> {
   selfage ${PURPOSE_MESSAGE} <relative file path> <${DRY_RUN_FLAG}>
   
   ${PURPOSE_BUILD}: Build/Compile all files.
-  ${PURPOSE_BUNDLE}: Build and bundle front-end files according to the config in ${DEFAULT_URL_TO_BUNDLES_FILE}.
+  ${PURPOSE_BUNDLE}: Build and bundle front-end files according to the config in ${URL_TO_BUNDLES_CONFIG_FILE}.
   ${PURPOSE_CLEAN}: Delete all files generated from compiling.
   ${PURPOSE_RUN}: Compile and run the specified file with the rest of the flags passed through.
   ${PURPOSE_FORMAT}: Format the specified file with lint warnings, if any.
