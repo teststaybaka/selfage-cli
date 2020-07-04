@@ -19,6 +19,7 @@
   "homepage": "https://github.com/teststaybaka/selfage-cli#readme",
   "dependencies": {
     "browserify": "^16.5.1",
+    "commander": "^5.1.0",
     "prettier": "2.0.5",
     "source-map-support": "^0.5.19",
     "typescript": "^3.9.2",

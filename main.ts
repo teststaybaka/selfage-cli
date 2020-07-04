@@ -5,17 +5,10 @@ import { BuildCleaner, Builder } from "./builder";
 import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
+import { Command } from "commander";
 import { readFileSync, writeFileSync } from "fs";
 import { URL_TO_BUNDLES_CONFIG_FILE } from "selfage/common";
 import "source-map-support/register";
-
-let PURPOSE_BUILD = "build";
-let PURPOSE_BUNDLE = "bundle";
-let PURPOSE_CLEAN = "clean";
-let PURPOSE_RUN = "run";
-let PURPOSE_FORMAT = "fmt";
-let PURPOSE_MESSAGE = "msg";
-let DRY_RUN_FLAG = "dry_run";
 
 function forceFileExtensions(fileFromCommandLine: string, ext: string): string {
   let pathObj = path.parse(fileFromCommandLine);
@@ -24,8 +17,8 @@ function forceFileExtensions(fileFromCommandLine: string, ext: string): string {
   return path.format(pathObj);
 }
 
-function writeFile(filePath: string, content: string, dryRunArg: string): void {
-  if (dryRunArg === DRY_RUN_FLAG) {
+function writeFile(filePath: string, content: string, dryRun: boolean): void {
+  if (dryRun) {
     console.log(content);
   } else {
     writeFileSync(filePath, content);
@@ -33,61 +26,109 @@ function writeFile(filePath: string, content: string, dryRunArg: string): void {
 }
 
 async function main(): Promise<void> {
-  let purpose = process.argv[2];
-  if (purpose === PURPOSE_BUILD) {
-    new Builder().build();
-  } else if (purpose === PURPOSE_BUNDLE) {
-    let builder = new Builder();
-    builder.build();
-    await builder.bundle(URL_TO_BUNDLES_CONFIG_FILE);
-  } else if (purpose === PURPOSE_CLEAN) {
-    BuildCleaner.clean();
-  } else if (purpose === PURPOSE_RUN) {
-    new Builder().build();
-    let filePath = forceFileExtensions(process.argv[3], ".js");
-    let passAlongArgs = process.argv.slice(4);
-    spawnSync("node", [filePath, ...passAlongArgs], {
-      stdio: "inherit",
-    });
-  } else if (purpose === PURPOSE_FORMAT) {
-    let filePath = forceFileExtensions(process.argv[3], ".ts");
-    let contentToBeFormatted = readFileSync(filePath).toString();
-    let contentImportsSorted = new ImportsSorter(contentToBeFormatted).sort();
-    let contentFormatted = prettier.format(contentImportsSorted, {
-      parser: "typescript",
-    });
-    writeFile(filePath, contentFormatted, process.argv[4]);
-  } else if (purpose === PURPOSE_MESSAGE) {
-    let filePath = forceFileExtensions(process.argv[3], ".ts");
-    let contentToBeProcessed = readFileSync(filePath).toString();
-    let contentGenerated = new MessageGenerator(
-      contentToBeProcessed
-    ).generate();
-    let contentFormatted = prettier.format(contentGenerated, {
-      parser: "typescript",
-    });
-    writeFile(filePath, contentFormatted, process.argv[4]);
-  } else {
-    console.log(`Usage:
-  selfage ${PURPOSE_BUILD}
-  selfage ${PURPOSE_BUNDLE}
-  selfage ${PURPOSE_CLEAN}
-  selfage ${PURPOSE_RUN} <relative file path> <pass-through flags>
-  selfage ${PURPOSE_FORMAT} <relative file path> <${DRY_RUN_FLAG}>
-  selfage ${PURPOSE_MESSAGE} <relative file path> <${DRY_RUN_FLAG}>
-  
-  ${PURPOSE_BUILD}: Build/Compile all files.
-  ${PURPOSE_BUNDLE}: Build and bundle front-end files according to the config in ${URL_TO_BUNDLES_CONFIG_FILE}.
-  ${PURPOSE_CLEAN}: Delete all files generated from compiling.
-  ${PURPOSE_RUN}: Compile and run the specified file with the rest of the flags passed through.
-  ${PURPOSE_FORMAT}: Format the specified file with lint warnings, if any.
-  ${PURPOSE_MESSAGE}: Generate implementions of MessageUtil for and overwrite the specified file..
-
-  <relative file path>'s extension can be .js, .ts, a single ".", or no extension at all, but cannot be .d.ts. It will be transformed to ts or js file depending on the command.
-  <pass-through flags> is the list of rest command line arguments which will be passed to the program being started as it is.
-  <${DRY_RUN_FLAG}> when typed verbatim, indicates a print of resulted file instead of overwriting the file in-place.
-`);
-  }
+  let program = new Command();
+  program
+    .command("build")
+    .description("Build all files.")
+    .action(
+      async (): Promise<void> => {
+        new Builder().build();
+      }
+    );
+  program
+    .command("bundle")
+    .description(
+      `Bundle front-end files according to the config in ` +
+        `${URL_TO_BUNDLES_CONFIG_FILE}.`
+    )
+    .action(
+      async (): Promise<void> => {
+        let builder = new Builder();
+        builder.build();
+        await builder.bundle(URL_TO_BUNDLES_CONFIG_FILE);
+      }
+    );
+  program
+    .command("clean")
+    .description("Delete all files generated from building and bundling.")
+    .action(
+      async (): Promise<void> => {
+        BuildCleaner.clean();
+      }
+    );
+  program
+    .command("run <file>")
+    .description(
+      `Compile and run the specified file whose extension can be .js, .ts, a ` +
+        `single ".", or no extension at all, but cannot be .d.ts, which will ` +
+        `be changed to a js file.`
+    )
+    .action(
+      async (file, options, extraArgs): Promise<void> => {
+        new Builder().build();
+        let jsFile = forceFileExtensions(file, ".js");
+        let args: string[];
+        if (!extraArgs) {
+          args = [];
+        } else {
+          args = extraArgs;
+        }
+        spawnSync("node", [jsFile, ...args], {
+          stdio: "inherit",
+        });
+      }
+    );
+  program
+    .command("format <file>")
+    .alias("fmt")
+    .description(
+      `Format the specified file whose extension can be .js, .ts, a single ` +
+        `".", or no extension at all, but cannot be .d.ts, which will be ` +
+        `changed to a ts file.`
+    )
+    .option(
+      "--dry-run",
+      "Print the formatted content instead of overwriting the file."
+    )
+    .action(
+      async (file, options): Promise<void> => {
+        let tsFile = forceFileExtensions(file, ".ts");
+        let contentToBeFormatted = readFileSync(tsFile).toString();
+        let contentImportsSorted = new ImportsSorter(
+          contentToBeFormatted
+        ).sort();
+        let contentFormatted = prettier.format(contentImportsSorted, {
+          parser: "typescript",
+        });
+        writeFile(tsFile, contentFormatted, options.dryRun);
+      }
+    );
+  program
+    .command("message <file>")
+    .alias("msg")
+    .description(
+      `Generate implementions of MessageUtil for and overwrite the specified ` +
+        `file whose extension can be .js, .ts, a single ".", or no extension ` +
+        `at all, but cannot be .d.ts, which will be changed to a ts file.`
+    )
+    .option(
+      "--dry-run",
+      "Print the generated implementations instead of overwriting the file."
+    )
+    .action(
+      async (file, options): Promise<void> => {
+        let tsFile = forceFileExtensions(file, ".ts");
+        let contentToBeProcessed = readFileSync(tsFile).toString();
+        let contentGenerated = new MessageGenerator(
+          contentToBeProcessed
+        ).generate();
+        let contentFormatted = prettier.format(contentGenerated, {
+          parser: "typescript",
+        });
+        writeFile(tsFile, contentFormatted, options.dryRun);
+      }
+    );
+  await program.parseAsync();
 }
 
 main();
