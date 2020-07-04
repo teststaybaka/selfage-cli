@@ -61,7 +61,8 @@ async function main(): Promise<void> {
     .description(
       `Compile and run the specified file whose extension can be .js, .ts, a ` +
         `single ".", or no extension at all, but cannot be .d.ts, which will ` +
-        `be changed to a js file.`
+        `be changed to a js file. Pass through arguments to the executable ` +
+        `file after --.`
     )
     .action(
       async (file, options, extraArgs): Promise<void> => {
