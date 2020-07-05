@@ -1,12 +1,12 @@
 #!/usr/bin/env node
+import fs = require("fs");
 import path = require("path");
 import prettier = require("prettier");
-import { BuildCleaner, Builder } from "./builder";
+import { Builder } from "./builder";
 import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import { Command } from "commander";
-import { readFileSync, writeFileSync } from "fs";
 import { URL_TO_BUNDLES_CONFIG_FILE } from "selfage/common";
 import "source-map-support/register";
 
@@ -21,7 +21,7 @@ function writeFile(filePath: string, content: string, dryRun: boolean): void {
   if (dryRun) {
     console.log(content);
   } else {
-    writeFileSync(filePath, content);
+    fs.writeFileSync(filePath, content);
   }
 }
 
@@ -53,7 +53,7 @@ async function main(): Promise<void> {
     .description("Delete all files generated from building and bundling.")
     .action(
       async (): Promise<void> => {
-        BuildCleaner.clean();
+        await new Builder().clean();
       }
     );
   program
@@ -94,7 +94,7 @@ async function main(): Promise<void> {
     .action(
       async (file, options): Promise<void> => {
         let tsFile = forceFileExtensions(file, ".ts");
-        let contentToBeFormatted = readFileSync(tsFile).toString();
+        let contentToBeFormatted = fs.readFileSync(tsFile).toString();
         let contentImportsSorted = new ImportsSorter(
           contentToBeFormatted
         ).sort();
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
     .action(
       async (file, options): Promise<void> => {
         let tsFile = forceFileExtensions(file, ".ts");
-        let contentToBeProcessed = readFileSync(tsFile).toString();
+        let contentToBeProcessed = fs.readFileSync(tsFile).toString();
         let contentGenerated = new MessageGenerator(
           contentToBeProcessed
         ).generate();

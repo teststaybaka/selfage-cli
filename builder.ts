@@ -20,9 +20,20 @@ import { StreamReader } from "selfage/stream_reader";
 import { URL_TO_BUNDLES_HOLDER_UTIL } from "selfage/url_to_bundle";
 
 let pipeline = util.promisify(stream.pipeline);
-let BUNDLE_INFO_FILE_EXT = ".bundleinfo";
 
 export class Builder {
+  private static BUNDLE_INFO_FILE_EXT = ".bundleinfo";
+  private static EXCLUDED_DIRS = new Set<string>(["node_modules"]);
+  private static FILE_EXTS_BUILT = [
+    ".d.ts",
+    ".js",
+    ".js.map",
+    ".tsbuildinfo",
+    Builder.BUNDLE_INFO_FILE_EXT,
+    BUNDLE_EXT,
+    GZIP_EXT,
+  ];
+
   private streamReader = new StreamReader();
 
   public build(): void {
@@ -46,7 +57,8 @@ export class Builder {
     );
     let promisesToBundle = urlToBundlesHolder.urlToBundles.map(
       async (urlToBundle): Promise<void> => {
-        let bundleInfoFile = urlToBundle.modulePath + BUNDLE_INFO_FILE_EXT;
+        let bundleInfoFile =
+          urlToBundle.modulePath + Builder.BUNDLE_INFO_FILE_EXT;
         if (!(await Builder.needsBundle(bundleInfoFile))) {
           return;
         }
@@ -81,8 +93,8 @@ export class Builder {
         let bundleInfos: BundleInfo[] = [];
         let promisesToCollectBundleInfos = involvedFiles.map(
           async (file): Promise<void> => {
-            let fileStat = await fs.promises.stat(file);
-            bundleInfos.push({ fileName: file, mtimeMs: fileStat.mtimeMs });
+            let fileStats = await fs.promises.stat(file);
+            bundleInfos.push({ fileName: file, mtimeMs: fileStats.mtimeMs });
           }
         );
         await Promise.all(promisesToCollectBundleInfos);
@@ -129,47 +141,41 @@ export class Builder {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>
       <script type="text/javascript">${jsCode}</script></body></html>`;
   }
-}
 
-export class BuildCleaner {
-  private static EXCLUDED_DIRS = new Set<string>(["node_modules"]);
-  private static FILE_EXTS_BUILT = [
-    ".d.ts",
-    ".js",
-    ".js.map",
-    ".tsbuildinfo",
-    BUNDLE_INFO_FILE_EXT,
-    BUNDLE_EXT,
-    GZIP_EXT,
-  ];
-
-  public static clean(): void {
-    let files = BuildCleaner.findFilesRecursively(".");
-    for (let file of files) {
-      fs.unlinkSync(file);
-    }
+  public async clean(): Promise<void> {
+    let files = await Builder.findFilesRecursively(".");
+    let promisesToUnlink = files.map(
+      async (file): Promise<void> => {
+        await fs.promises.unlink(file);
+      }
+    );
+    await Promise.all(promisesToUnlink);
   }
 
-  private static findFilesRecursively(dir: string): string[] {
-    let files = [];
-    let items = fs.readdirSync(dir);
-    for (let item of items) {
-      let fullPath = path.join(dir, item);
-      if (fs.statSync(fullPath).isDirectory()) {
-        if (!BuildCleaner.EXCLUDED_DIRS.has(fullPath)) {
-          let filesFromSubDirectory = BuildCleaner.findFilesRecursively(
-            fullPath
-          );
-          files.push(...filesFromSubDirectory);
-        }
-      } else {
-        for (let ext of BuildCleaner.FILE_EXTS_BUILT) {
-          if (fullPath.endsWith(ext)) {
-            files.push(fullPath);
+  private static async findFilesRecursively(dir: string): Promise<string[]> {
+    let items = await fs.promises.readdir(dir);
+    let files: string[] = [];
+    let promisesOfFiles = items.map(
+      async (item): Promise<void> => {
+        let fullPath = path.join(dir, item);
+        let fileStats = await fs.promises.stat(fullPath);
+        if (fileStats.isDirectory()) {
+          if (!Builder.EXCLUDED_DIRS.has(fullPath)) {
+            let filesFromSubDirectory = await Builder.findFilesRecursively(
+              fullPath
+            );
+            files.push(...filesFromSubDirectory);
+          }
+        } else {
+          for (let ext of Builder.FILE_EXTS_BUILT) {
+            if (fullPath.endsWith(ext)) {
+              files.push(fullPath);
+            }
           }
         }
       }
-    }
+    );
+    await Promise.all(promisesOfFiles);
     return files;
   }
 }
