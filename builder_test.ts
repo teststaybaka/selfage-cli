@@ -7,7 +7,9 @@ import { TestCase, assert, runTests } from "selfage/test_base";
 // setting up local automated browser testing environment.
 
 function compileTypeScript(filePath: string) {
-  spawnSync("npx", ["tsc", filePath], { stdio: "inherit" });
+  spawnSync("npx", ["tsc", "--inlineSourceMap", "--inlineSources", filePath], {
+    stdio: "inherit",
+  });
 }
 
 function cleanupCompiledAndBundles() {

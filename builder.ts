@@ -140,8 +140,10 @@ export class Builder {
   }
 
   private static embedIntoHtml(jsCode: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>
-      <script type="text/javascript">${jsCode}</script></body></html>`;
+    return (
+      `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>` +
+      `<script type="text/javascript">${jsCode}</script></body></html>`
+    );
   }
 
   public async clean(): Promise<void> {
