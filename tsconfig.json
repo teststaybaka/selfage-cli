@@ -13,7 +13,6 @@
     "noUnusedLocals": true,
     "moduleResolution": "Node",
     "skipLibCheck": true,
-    "declaration": true,
     "incremental": true
   },
   "exclude": [
