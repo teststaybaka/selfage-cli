@@ -67,7 +67,7 @@ export class Builder {
         let compressedTargetFile = targetFile + GZIP_EXT;
         let promisesToWrite: Promise<void>[] = [];
 
-        let browserifyHandler = browserify(sourceFile);
+        let browserifyHandler = browserify(sourceFile, { debug: true });
         let involvedFiles: string[] = [];
         browserifyHandler.on("file", (file) => {
           involvedFiles.push(file);
@@ -75,7 +75,9 @@ export class Builder {
         let code = await this.streamReader.readString(
           browserifyHandler.bundle()
         );
-        let minifiedCode = UglifyJS.minify(code).code;
+        let minifiedCode = UglifyJS.minify(code, {
+          sourceMap: { content: "inline", includeSources: true, url: "inline" },
+        }).code;
         let htmlContent = Builder.embedIntoHtml(minifiedCode);
         promisesToWrite.push(fs.promises.writeFile(targetFile, htmlContent));
 
