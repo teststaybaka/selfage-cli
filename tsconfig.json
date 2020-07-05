@@ -16,6 +16,6 @@
     "incremental": true
   },
   "exclude": [
-    "test_data",
+    "test_data"
   ]
 }
