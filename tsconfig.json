@@ -1,20 +1,5 @@
 {
-  "compilerOptions": {
-    "lib": ["dom", "es5", "es2015.collection", "es2015.promise"],
-    "downlevelIteration": true,
-    "esModuleInterop": true,
-    "module": "commonjs",
-    "target": "es5",
-    "alwaysStrict": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "noUnusedLocals": true,
-    "moduleResolution": "Node",
-    "skipLibCheck": true,
-    "incremental": true
-  },
+  "extends": "selfage/tsconfig",
   "exclude": [
     "test_data"
   ]
