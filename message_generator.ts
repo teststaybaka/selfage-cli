@@ -6,6 +6,7 @@ import {
   InterfaceDeclaration,
   NamedImports,
   Node as TsNode,
+  NumericLiteral,
   PropertySignature,
   ScriptTarget,
   StringLiteral,
@@ -43,11 +44,11 @@ export class MessageGenerator {
     }
 
     if (node.kind === SyntaxKind.InterfaceDeclaration) {
-      this.generateMessageUtil(node as InterfaceDeclaration);
+      this.generateMessageDescriptor(node as InterfaceDeclaration);
     }
 
     if (node.kind === SyntaxKind.EnumDeclaration) {
-      this.generateEnumUtil(node as EnumDeclaration);
+      this.generateEnumDescriptor(node as EnumDeclaration);
     }
   }
 
@@ -63,7 +64,7 @@ export class MessageGenerator {
     this.pathToNamedImports.set(importPath, new Set(namedImports));
   }
 
-  private generateMessageUtil(interfaceNode: InterfaceDeclaration): void {
+  private generateMessageDescriptor(interfaceNode: InterfaceDeclaration): void {
     let interfaceName = interfaceNode.name.text;
     this.content += `${this.getLeadingComments(interfaceNode)}
 export interface ${interfaceName}`;
@@ -71,7 +72,6 @@ export interface ${interfaceName}`;
       this.content += " " + interfaceNode.heritageClauses[0].getText();
     }
     this.content += " {";
-
     for (let member of interfaceNode.members) {
       let field = member as PropertySignature;
       let fieldName = (field.name as Identifier).text;
@@ -79,92 +79,71 @@ export interface ${interfaceName}`;
       this.content += `${this.getLeadingComments(member)}
   ${fieldName}?: ${fieldType},`;
     }
-
     this.content += `
 }
 `;
 
+    this.importFromNamedTypeDescriptor("NamedTypeDescriptor");
+    this.importFromNamedTypeDescriptor("NamedTypeKind");
+    let descriptorName = MessageGenerator.createDescriptorName(interfaceName);
     this.content += `
-export class ${interfaceName}Util implements MessageUtil<${interfaceName}> {
-  public from(obj?: any, output?: object): ${interfaceName} {
-    if (!obj || typeof obj !== 'object') {
-      return undefined;
-    }
-
-    let ret: ${interfaceName};
-    if (output) {
-      ret = output;
-    } else {
-      ret = {};
-    }`;
-
+export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
+  name: '${interfaceName}',
+  kind: NamedTypeKind.MESSAGE,
+  messageFields: [`;
     if (interfaceNode.heritageClauses) {
       for (let baseType of interfaceNode.heritageClauses[0].types) {
         let baseTypeName = (baseType.expression as Identifier).text;
-        let utilName = MessageGenerator.createUtilName(baseTypeName);
-        this.importUtilIfTypeIsImported(baseTypeName, utilName);
+        let descriptorName = MessageGenerator.createDescriptorName(
+          baseTypeName
+        );
+        this.importDescriptorIfTypeIsImported(baseTypeName, descriptorName);
         this.content += `
-    ${utilName}.from(obj, ret);`;
+    ...${descriptorName}.fields,`;
       }
     }
-
     for (let member of interfaceNode.members) {
+      this.importFromNamedTypeDescriptor("MessageFieldType");
       let field = member as PropertySignature;
       let fieldName = (field.name as Identifier).text;
+      this.content += `
+    {
+      name: '${fieldName}',`;
+
+      let fieldTypeNode: TypeNode;
+      let isArray: boolean;
       if (field.type.kind !== SyntaxKind.ArrayType) {
-        let {
-          basicType,
-          nestedType,
-          nestedTypeUtil,
-        } = this.getVariableTypeAndImportUtilIfNecessary(field.type);
-        if (basicType) {
-          this.content += `
-    if (typeof obj.${fieldName} === '${basicType}') {
-      ret.${fieldName} = obj.${fieldName};
-    }`;
-        } else if (nestedType) {
-          this.content += `
-    ret.${fieldName} = ${nestedTypeUtil}.from(obj.${fieldName});`;
-        }
+        fieldTypeNode = field.type;
+        isArray = false;
       } else {
-        let {
-          basicType,
-          nestedType,
-          nestedTypeUtil,
-        } = this.getVariableTypeAndImportUtilIfNecessary(
-          (field.type as ArrayTypeNode).elementType
+        fieldTypeNode = (field.type as ArrayTypeNode).elementType;
+        isArray = true;
+      }
+      let { basicType, namedType } = MessageGenerator.getVariableType(
+        fieldTypeNode
+      );
+      if (basicType) {
+        this.content += `
+      type: MessageFieldType.${basicType},`;
+      } else {
+        let namedTypeDescriptor = MessageGenerator.createDescriptorName(
+          namedType
         );
-
+        this.importDescriptorIfTypeIsImported(namedType, namedTypeDescriptor);
         this.content += `
-    ret.${fieldName} = [];
-    if (Array.isArray(obj.${fieldName})) {
-      for (let element of obj.${fieldName}) {`;
-        if (basicType) {
-          this.content += `
-        if (typeof element === '${basicType}') {
-          ret.${fieldName}.push(element);
-        }`;
-        } else if (nestedType) {
-          this.content += `
-        let parsedElement = ${nestedTypeUtil}.from(element);
-        if (parsedElement !== undefined) {
-          ret.${fieldName}.push(parsedElement);
-        }
-        `;
-        }
+      type: MessageFieldType.NAMED_TYPE,
+      namedTypeDescriptor: ${namedTypeDescriptor},`;
+      }
+      if (isArray) {
         this.content += `
+      isArray: true,`;
       }
-    }`;
-      }
+      this.content += `
+    },`;
     }
-
-    let singletonUtilName = MessageGenerator.createUtilName(interfaceName);
     this.content += `
-    return ret;
-  }
-}
-
-export let ${singletonUtilName} = new ${interfaceName}Util();
+  ]
+};
 `;
   }
 
@@ -179,7 +158,7 @@ export let ${singletonUtilName} = new ${interfaceName}Util();
     }
   }
 
-  private static createUtilName(typeName: string): string {
+  private static createDescriptorName(typeName: string): string {
     let upperCaseSnakedName = typeName.charAt(0);
     for (let i = 1; i < typeName.length; i++) {
       let char = typeName.charAt(i);
@@ -189,68 +168,82 @@ export let ${singletonUtilName} = new ${interfaceName}Util();
         upperCaseSnakedName += char.toUpperCase();
       }
     }
-    return upperCaseSnakedName + "_UTIL";
+    return upperCaseSnakedName + "_DESCRIPTOR";
   }
 
-  private getVariableTypeAndImportUtilIfNecessary(
+  private static getVariableType(
     typeNode: TypeNode
-  ): { basicType: string; nestedType: string; nestedTypeUtil: string } {
+  ): { basicType: string; namedType: string } {
     let basicType = "";
     if (typeNode.kind === SyntaxKind.StringKeyword) {
-      basicType = "string";
+      basicType = "STRING";
     } else if (typeNode.kind === SyntaxKind.BooleanKeyword) {
-      basicType = "boolean";
+      basicType = "BOOLEAN";
     } else if (typeNode.kind === SyntaxKind.NumberKeyword) {
-      basicType = "number";
+      basicType = "NUMBER";
     }
-    let nestedType = "";
-    let nestedTypeUtil = "";
+    let namedType = "";
     if (typeNode.kind === SyntaxKind.TypeReference) {
-      nestedType = ((typeNode as TypeReferenceNode).typeName as Identifier)
-        .text;
-      nestedTypeUtil = MessageGenerator.createUtilName(nestedType);
-      this.importUtilIfTypeIsImported(nestedType, nestedTypeUtil);
+      namedType = ((typeNode as TypeReferenceNode).typeName as Identifier).text;
     }
     return {
       basicType: basicType,
-      nestedType: nestedType,
-      nestedTypeUtil: nestedTypeUtil,
+      namedType: namedType,
     };
   }
 
-  private importUtilIfTypeIsImported(typeName: string, utilName: string): void {
+  private importDescriptorIfTypeIsImported(
+    typeName: string,
+    descriptorName: string
+  ): void {
     let importPath = this.namedImportsToPath.get(typeName);
     if (importPath) {
-      this.pathToNamedImports.get(importPath).add(utilName);
+      this.pathToNamedImports.get(importPath).add(descriptorName);
     }
   }
 
-  private generateEnumUtil(enumNode: EnumDeclaration): void {
+  private importFromNamedTypeDescriptor(toBeImported: string) {
+    let namedTypeDescriptorPath = "selfage/named_type_descriptor";
+    let namedImports = this.pathToNamedImports.get(namedTypeDescriptorPath);
+    if (!namedImports) {
+      namedImports = new Set();
+      this.pathToNamedImports.set(namedTypeDescriptorPath, namedImports);
+    }
+    namedImports.add(toBeImported);
+  }
+
+  private generateEnumDescriptor(enumNode: EnumDeclaration): void {
     let enumName = enumNode.name.text;
     this.content += `${this.getLeadingComments(enumNode)}
 export enum ${enumName} {`;
     for (let member of enumNode.members) {
-      this.content += member.getFullText() + ",";
+      this.content += `
+  ${(member.name as Identifier).text} = ${
+        (member.initializer as NumericLiteral).text
+      },`;
     }
     this.content += `
 }
 `;
 
-    let singletonUtilName = MessageGenerator.createUtilName(enumName);
+    this.importFromNamedTypeDescriptor("NamedTypeDescriptor");
+    this.importFromNamedTypeDescriptor("NamedTypeKind");
+    let descriptorName = MessageGenerator.createDescriptorName(enumName);
     this.content += `
-export class ${enumName}Util implements MessageUtil<${enumName}> {
-  public from(obj?: any): ${enumName} {
-    if (typeof obj === 'number' && obj in ${enumName}) {
-      return obj;
+export let ${descriptorName}: NamedTypeDescriptor<${enumName}> = {
+  name: '${enumName}',
+  kind: NamedTypeKind.ENUM,
+  enumValues: [`;
+    for (let member of enumNode.members) {
+      this.content += `
+    {
+      name: '${(member.name as Identifier).text}',
+      value: ${(member.initializer as NumericLiteral).text},
+    },`;
     }
-    if (typeof obj === 'string' && obj in ${enumName}) {
-      return ${enumName}[obj as keyof typeof ${enumName}];
-    }
-    return undefined;
-  }
+    this.content += `
+  ]
 }
-
-export let ${singletonUtilName} = new ${enumName}Util();
 `;
   }
 
@@ -261,12 +254,5 @@ export let ${singletonUtilName} = new ${enumName}Util();
       this.content =
         `import { ${namedImports} } from '${importPath}';\n` + this.content;
     }
-
-    let serializerPath = "selfage/message_util";
-    if (this.pathToNamedImports.has(serializerPath)) {
-      return;
-    }
-    this.content =
-      `import { MessageUtil } from '${serializerPath}';\n` + this.content;
   }
 }

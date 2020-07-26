@@ -6,7 +6,7 @@ import UglifyJS = require("uglify-js");
 import util = require("util");
 import zlib = require("zlib");
 import {
-  BUNDLE_INFO_HOLDER_UTIL,
+  BUNDLE_INFO_HOLDER_DESCRIPTOR,
   BundleInfo,
   BundleInfoHolder,
 } from "./bundle_info";
@@ -16,8 +16,9 @@ import {
   FILE_NOT_EXISTS_ERROR_CODE,
   GZIP_EXT,
 } from "selfage/common";
+import { parseJsonString } from "selfage/named_type_util";
 import { StreamReader } from "selfage/stream_reader";
-import { URL_TO_BUNDLES_HOLDER_UTIL } from "selfage/url_to_bundle";
+import { URL_TO_BUNDLES_HOLDER_DESCRIPTOR } from "selfage/url_to_bundle";
 
 let pipeline = util.promisify(stream.pipeline);
 
@@ -52,8 +53,9 @@ export class Builder {
       }
     }
 
-    let urlToBundlesHolder = URL_TO_BUNDLES_HOLDER_UTIL.from(
-      JSON.parse(urlToBundlesBuffer.toString())
+    let urlToBundlesHolder = parseJsonString(
+      urlToBundlesBuffer.toString(),
+      URL_TO_BUNDLES_HOLDER_DESCRIPTOR
     );
     let promisesToBundle = urlToBundlesHolder.urlToBundles.map(
       async (urlToBundle): Promise<void> => {
@@ -125,8 +127,9 @@ export class Builder {
       }
     }
 
-    let bundleInfoHolder = BUNDLE_INFO_HOLDER_UTIL.from(
-      JSON.parse(bundleInfoBuffer.toString())
+    let bundleInfoHolder = parseJsonString(
+      bundleInfoBuffer.toString(),
+      BUNDLE_INFO_HOLDER_DESCRIPTOR
     );
     let promisesToCheck = bundleInfoHolder.bundleInfos.map(
       async (bundleInfo): Promise<boolean> => {
