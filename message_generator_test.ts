@@ -38,9 +38,9 @@ function parameterizedTest(
     for (let text of textsToExclude) {
       assert(!contentGenerated.includes(text), `${text} is found.`);
     }
-    // Use `tsc` to check if generated messages contain any syntax error and can
-    // be properly imported in the corresponding prober module. Execute the
-    // prober which tests if generated functions work properly.
+    // Use `tsc` to check if generated messages contain any syntax or type error
+    // and can be properly imported in the corresponding prober module. Execute
+    // the verifier to verify if generated functions work properly.
     let compilingRes = spawnSync(
       "npx",
       [
@@ -48,18 +48,18 @@ function parameterizedTest(
         "--noUnusedLocals",
         "--noImplicitAny",
         "--sourceMap",
-        testTargetModule + "_prober.ts",
+        testTargetModule + "_verifier.ts",
       ],
       { stdio: "inherit" }
     );
     if (compilingRes.status !== 0) {
       throw new Error("Compiling error.");
     }
-    let executeRes = spawnSync("node", [testTargetModule + "_prober.js"], {
+    let executeRes = spawnSync("node", [testTargetModule + "_verifier.js"], {
       stdio: "inherit",
     });
     if (executeRes.status !== 0) {
-      throw new Error("Execution error");
+      throw new Error("Execution error.");
     }
   } finally {
     // Cleanup

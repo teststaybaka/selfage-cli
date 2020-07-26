@@ -99,7 +99,7 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
         );
         this.importDescriptorIfTypeIsImported(baseTypeName, descriptorName);
         this.content += `
-    ...${descriptorName}.fields,`;
+    ...${descriptorName}.messageFields,`;
       }
     }
     for (let member of interfaceNode.members) {
@@ -217,7 +217,7 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
     this.content += `${this.getLeadingComments(enumNode)}
 export enum ${enumName} {`;
     for (let member of enumNode.members) {
-      this.content += `
+      this.content += `${this.getLeadingComments(member)}
   ${(member.name as Identifier).text} = ${
         (member.initializer as NumericLiteral).text
       },`;
