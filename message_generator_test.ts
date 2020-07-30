@@ -1,7 +1,7 @@
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
-import { TestCase, assert, runTests } from "selfage/test_base";
+import { Expectation, TestCase, runTests } from "selfage/test_base";
 
 function parameterizedTest(
   testTargetModule: string,
@@ -31,13 +31,16 @@ function parameterizedTest(
   writeFileSync(filePath, contentGenerated);
 
   // Verify
+  for (let text of textsToMatch) {
+    Expectation.expect(contentGenerated.includes(text), `${text} to be found.`);
+  }
+  for (let text of textsToExclude) {
+    Expectation.expect(
+      !contentGenerated.includes(text),
+      `${text} to be not found.`
+    );
+  }
   try {
-    for (let text of textsToMatch) {
-      assert(contentGenerated.includes(text), `${text} is not found.`);
-    }
-    for (let text of textsToExclude) {
-      assert(!contentGenerated.includes(text), `${text} is found.`);
-    }
     // Use `tsc` to check if generated messages contain any syntax or type error
     // and can be properly imported in the corresponding prober module. Execute
     // the verifier to verify if generated functions work properly.

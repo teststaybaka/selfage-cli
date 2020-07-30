@@ -1,7 +1,7 @@
 import fs = require("fs");
 import { Builder } from "./builder";
 import { spawnSync } from "child_process";
-import { TestCase, assert, runTests } from "selfage/test_base";
+import { Expectation, TestCase, runTests } from "selfage/test_base";
 
 // Simple tests only verifying files generated or not. Functional tests requires
 // setting up local automated browser testing environment.
@@ -44,12 +44,12 @@ class BundleForTheFirstTime implements TestCase {
     await new Builder().bundle("./test_data/bundle_test/url_to_bundles.json");
 
     // Verify
-    try {
-      assert(fs.existsSync("./test_data/bundle_test/main.bundle"));
-      assert(fs.existsSync("./test_data/bundle_test/main.bundle.tar.gz"));
-    } finally {
-      cleanupCompiledAndBundles();
-    }
+    Expectation.expect(fs.existsSync("./test_data/bundle_test/main.bundle"));
+    Expectation.expect(
+      fs.existsSync("./test_data/bundle_test/main.bundle.tar.gz")
+    );
+
+    cleanupCompiledAndBundles();
   }
 }
 
@@ -69,7 +69,7 @@ class SkipBundlingWithoutChanges implements TestCase {
     try {
       let mtimeActual = fs.statSync("./test_data/bundle_test/main.bundle")
         .mtimeMs;
-      assert(mtimeActual === mtime);
+      Expectation.expect(mtimeActual === mtime);
     } finally {
       cleanupCompiledAndBundles();
     }
@@ -98,7 +98,7 @@ class BundleAfterModifyingMainFile implements TestCase {
     try {
       let mtimeActual = fs.statSync("./test_data/bundle_test/main.bundle")
         .mtimeMs;
-      assert(mtimeActual > mtime);
+      Expectation.expect(mtimeActual > mtime);
     } finally {
       cleanupCompiledAndBundles();
       fs.writeFileSync("./test_data/bundle_test/main.ts", backupContent);
@@ -128,7 +128,7 @@ class BundleAfterModifyingOneDependency implements TestCase {
     try {
       let mtimeActual = fs.statSync("./test_data/bundle_test/main.bundle")
         .mtimeMs;
-      assert(mtimeActual > mtime);
+      Expectation.expect(mtimeActual > mtime);
     } finally {
       cleanupCompiledAndBundles();
       fs.writeFileSync("./test_data/bundle_test/lib_foo.ts", backupContent);
