@@ -1,5 +1,5 @@
 import fs = require("fs");
-import { Builder } from "./builder";
+import { bundle } from "./build";
 import { spawnSync } from "child_process";
 import { Expectation, TestCase, runTests } from "selfage/test_base";
 
@@ -26,7 +26,7 @@ class FileNotExits implements TestCase {
 
   public async execute() {
     // Execute
-    await new Builder().bundle("test_data/bundle_tests/no_such_file");
+    await bundle("test_data/bundle_tests/no_such_file");
 
     // Verify
     // No error.
@@ -41,7 +41,7 @@ class BundleForTheFirstTime implements TestCase {
     compileTypeScript("./test_data/bundle_test/main.ts");
 
     // Execute
-    await new Builder().bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundle("./test_data/bundle_test/url_to_bundles.json");
 
     // Verify
     Expectation.expect(fs.existsSync("./test_data/bundle_test/main.bundle"));
@@ -59,11 +59,11 @@ class SkipBundlingWithoutChanges implements TestCase {
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/bundle_test/main.ts");
-    await new Builder().bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundle("./test_data/bundle_test/url_to_bundles.json");
     let mtime = fs.statSync("./test_data/bundle_test/main.bundle").mtimeMs;
 
     // Execute
-    await new Builder().bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundle("./test_data/bundle_test/url_to_bundles.json");
 
     // Verify
     try {
@@ -82,7 +82,7 @@ class BundleAfterModifyingMainFile implements TestCase {
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/bundle_test/main.ts");
-    await new Builder().bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundle("./test_data/bundle_test/url_to_bundles.json");
     let mtime = fs.statSync("./test_data/bundle_test/main.bundle").mtimeMs;
     let backupContent = fs.readFileSync("./test_data/bundle_test/main.ts");
     fs.copyFileSync(
@@ -92,7 +92,7 @@ class BundleAfterModifyingMainFile implements TestCase {
     compileTypeScript("./test_data/bundle_test/main.ts");
 
     // Execute
-    await new Builder().bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundle("./test_data/bundle_test/url_to_bundles.json");
 
     // Verify
     try {
@@ -112,7 +112,7 @@ class BundleAfterModifyingOneDependency implements TestCase {
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/bundle_test/main.ts");
-    await new Builder().bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundle("./test_data/bundle_test/url_to_bundles.json");
     let mtime = fs.statSync("./test_data/bundle_test/main.bundle").mtimeMs;
     let backupContent = fs.readFileSync("./test_data/bundle_test/lib_foo.ts");
     fs.copyFileSync(
@@ -122,7 +122,7 @@ class BundleAfterModifyingOneDependency implements TestCase {
     compileTypeScript("./test_data/bundle_test/main.ts");
 
     // Execute
-    await new Builder().bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundle("./test_data/bundle_test/url_to_bundles.json");
 
     // Verify
     try {

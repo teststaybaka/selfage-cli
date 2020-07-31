@@ -2,7 +2,7 @@
 import fs = require("fs");
 import path = require("path");
 import prettier = require("prettier");
-import { Builder } from "./builder";
+import { build, bundle, clean } from "./build";
 import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
@@ -32,7 +32,7 @@ async function main(): Promise<void> {
     .description("Build all files.")
     .action(
       async (): Promise<void> => {
-        new Builder().build();
+        build();
       }
     );
   program
@@ -43,9 +43,8 @@ async function main(): Promise<void> {
     )
     .action(
       async (): Promise<void> => {
-        let builder = new Builder();
-        builder.build();
-        await builder.bundle(URL_TO_BUNDLES_CONFIG_FILE);
+        build();
+        await bundle(URL_TO_BUNDLES_CONFIG_FILE);
       }
     );
   program
@@ -53,7 +52,7 @@ async function main(): Promise<void> {
     .description("Delete all files generated from building and bundling.")
     .action(
       async (): Promise<void> => {
-        await new Builder().clean();
+        await clean();
       }
     );
   program
@@ -66,7 +65,7 @@ async function main(): Promise<void> {
     )
     .action(
       async (file, options, extraArgs): Promise<void> => {
-        new Builder().build();
+        build();
         let jsFile = forceFileExtensions(file, ".js");
         let args: string[];
         if (!extraArgs) {
