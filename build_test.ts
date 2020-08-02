@@ -16,7 +16,7 @@ function cleanupCompiledAndBundleUrls() {
   fs.unlinkSync("./test_data/bundle_test/main.js");
   fs.unlinkSync("./test_data/bundle_test/lib_foo.js");
   fs.unlinkSync("./test_data/bundle_test/lib_bar.js");
-  fs.unlinkSync("./test_data/bundle_test/main.bundleinfo");
+  fs.unlinkSync("./test_data/bundle_test/main.filemtime");
   fs.unlinkSync("./test_data/bundle_test/main.html");
   fs.unlinkSync("./test_data/bundle_test/main.html.tar.gz");
 }

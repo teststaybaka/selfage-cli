@@ -4,13 +4,13 @@ import {
   MessageFieldType,
 } from "selfage/named_type_descriptor";
 
-export interface BundleInfo {
+export interface FileMtime {
   fileName?: string;
   mtimeMs?: number;
 }
 
-export let BUNDLE_INFO_DESCRIPTOR: NamedTypeDescriptor<BundleInfo> = {
-  name: "BundleInfo",
+export let FILE_MTIME_DESCRIPTOR: NamedTypeDescriptor<FileMtime> = {
+  name: "FileMtime",
   kind: NamedTypeKind.MESSAGE,
   messageFields: [
     {
@@ -24,18 +24,18 @@ export let BUNDLE_INFO_DESCRIPTOR: NamedTypeDescriptor<BundleInfo> = {
   ],
 };
 
-export interface BundleInfoHolder {
-  bundleInfos?: BundleInfo[];
+export interface FileMtimeList {
+  fileMtimes?: FileMtime[];
 }
 
-export let BUNDLE_INFO_HOLDER_DESCRIPTOR: NamedTypeDescriptor<BundleInfoHolder> = {
-  name: "BundleInfoHolder",
+export let FILE_MTIME_LIST_DESCRIPTOR: NamedTypeDescriptor<FileMtimeList> = {
+  name: "FileMtimeList",
   kind: NamedTypeKind.MESSAGE,
   messageFields: [
     {
-      name: "bundleInfos",
+      name: "fileMtimes",
       type: MessageFieldType.NAMED_TYPE,
-      namedTypeDescriptor: BUNDLE_INFO_DESCRIPTOR,
+      namedTypeDescriptor: FILE_MTIME_DESCRIPTOR,
       isArray: true,
     },
   ],

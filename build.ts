@@ -6,10 +6,10 @@ import UglifyJS = require("uglify-js");
 import util = require("util");
 import zlib = require("zlib");
 import {
-  BUNDLE_INFO_HOLDER_DESCRIPTOR,
-  BundleInfo,
-  BundleInfoHolder,
-} from "./bundle_info";
+  FILE_MTIME_LIST_DESCRIPTOR,
+  FileMtime,
+  FileMtimeList,
+} from "./file_mtime";
 import { spawnSync } from "child_process";
 import { FILE_NOT_EXISTS_ERROR_CODE, GZIP_EXT } from "selfage/common";
 import { parseJsonString } from "selfage/named_type_util";
@@ -17,7 +17,7 @@ import { STREAM_READER } from "selfage/stream_reader";
 import { URL_TO_MODULE_MAPPING_DESCRIPTOR } from "selfage/url_to_module";
 
 let pipeline = util.promisify(stream.pipeline);
-let BUNDLE_INFO_FILE_EXT = ".bundleinfo";
+let FILE_MTIME_CACHE_EXT = ".filemtime";
 let EXCLUDED_DIRS = new Set<string>(["node_modules"]);
 let FILE_EXTS_BUILT = [
   ".d.ts",
@@ -25,7 +25,7 @@ let FILE_EXTS_BUILT = [
   ".js.map",
   ".tsbuildinfo",
   ".html",
-  BUNDLE_INFO_FILE_EXT,
+  FILE_MTIME_CACHE_EXT,
   GZIP_EXT,
 ];
 
@@ -51,8 +51,8 @@ export async function bundleUrl(urlToModulesFile: string): Promise<void> {
   );
   let promisesToBundle = urlToModuleMapping.urlToModules.map(
     async (urlToModule): Promise<void> => {
-      let bundleInfoFile = urlToModule.modulePath + BUNDLE_INFO_FILE_EXT;
-      if (!(await needsBundle(bundleInfoFile))) {
+      let fileMtimeCacheFile = urlToModule.modulePath + FILE_MTIME_CACHE_EXT;
+      if (!(await needsBundle(fileMtimeCacheFile))) {
         return;
       }
       let sourceFile = urlToModule.modulePath + ".js";
@@ -83,17 +83,17 @@ export async function bundleUrl(urlToModulesFile: string): Promise<void> {
         )
       );
 
-      let bundleInfos: BundleInfo[] = [];
-      let promisesToCollectBundleInfos = involvedFiles.map(
+      let fileMtimes: FileMtime[] = [];
+      let promisesToCollectFileMtimes = involvedFiles.map(
         async (file): Promise<void> => {
           let fileStats = await fs.promises.stat(file);
-          bundleInfos.push({ fileName: file, mtimeMs: fileStats.mtimeMs });
+          fileMtimes.push({ fileName: file, mtimeMs: fileStats.mtimeMs });
         }
       );
-      await Promise.all(promisesToCollectBundleInfos);
-      let bundleInfoHolder: BundleInfoHolder = { bundleInfos: bundleInfos };
+      await Promise.all(promisesToCollectFileMtimes);
+      let fileMtimeList: FileMtimeList = { fileMtimes: fileMtimes };
       promisesToWrite.push(
-        fs.promises.writeFile(bundleInfoFile, JSON.stringify(bundleInfoHolder))
+        fs.promises.writeFile(fileMtimeCacheFile, JSON.stringify(fileMtimeList))
       );
       await Promise.all(promisesToWrite);
     }
@@ -101,10 +101,10 @@ export async function bundleUrl(urlToModulesFile: string): Promise<void> {
   await Promise.all(promisesToBundle);
 }
 
-async function needsBundle(bundleInfoFile: string): Promise<boolean> {
-  let bundleInfoBuffer: Buffer;
+async function needsBundle(fileMtimeCacheFile: string): Promise<boolean> {
+  let fileMtimesBuffer: Buffer;
   try {
-    bundleInfoBuffer = await fs.promises.readFile(bundleInfoFile);
+    fileMtimesBuffer = await fs.promises.readFile(fileMtimeCacheFile);
   } catch (e) {
     if (e.code === FILE_NOT_EXISTS_ERROR_CODE) {
       return true;
@@ -113,14 +113,19 @@ async function needsBundle(bundleInfoFile: string): Promise<boolean> {
     }
   }
 
-  let bundleInfoHolder = parseJsonString(
-    bundleInfoBuffer.toString(),
-    BUNDLE_INFO_HOLDER_DESCRIPTOR
+  let fileMtimeList = parseJsonString(
+    fileMtimesBuffer.toString(),
+    FILE_MTIME_LIST_DESCRIPTOR
   );
-  let promisesToCheck = bundleInfoHolder.bundleInfos.map(
-    async (bundleInfo): Promise<boolean> => {
-      let fileStats = await fs.promises.stat(bundleInfo.fileName);
-      return fileStats.mtimeMs > bundleInfo.mtimeMs;
+  let promisesToCheck = fileMtimeList.fileMtimes.map(
+    async (fileMtime): Promise<boolean> => {
+      let fileStats: fs.Stats;
+      try {
+        fileStats = await fs.promises.stat(fileMtime.fileName);
+      } catch (e) {
+        return true;
+      }
+      return fileStats.mtimeMs > fileMtime.mtimeMs;
     }
   );
   return (await Promise.all(promisesToCheck)).some((updated): boolean => {
