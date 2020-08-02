@@ -12,24 +12,28 @@ function compileTypeScript(filePath: string) {
   });
 }
 
-function cleanupCompiledAndBundleUrls() {
-  fs.unlinkSync("./test_data/bundle_test/main.js");
-  fs.unlinkSync("./test_data/bundle_test/lib_foo.js");
-  fs.unlinkSync("./test_data/bundle_test/lib_bar.js");
-  fs.unlinkSync("./test_data/bundle_test/main.filemtime");
-  fs.unlinkSync("./test_data/bundle_test/main.html");
-  fs.unlinkSync("./test_data/bundle_test/main.html.tar.gz");
-}
-
-class BundleUrlFileNotExits implements TestCase {
-  public name = "BundleUrlFileNotExists";
-
-  public async execute() {
-    // Execute
-    await bundleUrl("test_data/bundle_tests/no_such_file");
-
-    // Verify
-    // No error.
+async function cleanupCompiledAndBundleUrls() {
+  let promisesToUnlink: Promise<void>[] = [];
+  promisesToUnlink.push(fs.promises.unlink("./test_data/bundle_test/main.js"));
+  promisesToUnlink.push(
+    fs.promises.unlink("./test_data/bundle_test/lib_foo.js")
+  );
+  promisesToUnlink.push(
+    fs.promises.unlink("./test_data/bundle_test/lib_bar.js")
+  );
+  promisesToUnlink.push(
+    fs.promises.unlink("./test_data/bundle_test/main.filemtime")
+  );
+  promisesToUnlink.push(
+    fs.promises.unlink("./test_data/bundle_test/main.html")
+  );
+  promisesToUnlink.push(
+    fs.promises.unlink("./test_data/bundle_test/main.html.tar.gz")
+  );
+  try {
+    await Promise.all(promisesToUnlink);
+  } catch (e) {
+    // Might delete more than needed.
   }
 }
 
@@ -49,7 +53,7 @@ class BundleUrlForTheFirstTime implements TestCase {
       fs.existsSync("./test_data/bundle_test/main.html.tar.gz")
     );
 
-    cleanupCompiledAndBundleUrls();
+    await cleanupCompiledAndBundleUrls();
   }
 }
 
@@ -71,7 +75,7 @@ class BundleUrlSkipBundlingWithoutChanges implements TestCase {
         .mtimeMs;
       Expectation.expect(mtimeActual === mtime);
     } finally {
-      cleanupCompiledAndBundleUrls();
+      await cleanupCompiledAndBundleUrls();
     }
   }
 }
@@ -84,7 +88,7 @@ class BundleUrlAfterModifyingMainFile implements TestCase {
     compileTypeScript("./test_data/bundle_test/main.ts");
     await bundleUrl("./test_data/bundle_test/url_to_modules.json");
     let mtime = fs.statSync("./test_data/bundle_test/main.html").mtimeMs;
-    let backupContent = fs.readFileSync("./test_data/bundle_test/main.ts");
+    let backupMain = fs.readFileSync("./test_data/bundle_test/main.ts");
     fs.copyFileSync(
       "./test_data/bundle_test/main_modified.ts",
       "./test_data/bundle_test/main.ts"
@@ -100,8 +104,8 @@ class BundleUrlAfterModifyingMainFile implements TestCase {
         .mtimeMs;
       Expectation.expect(mtimeActual > mtime);
     } finally {
-      cleanupCompiledAndBundleUrls();
-      fs.writeFileSync("./test_data/bundle_test/main.ts", backupContent);
+      fs.writeFileSync("./test_data/bundle_test/main.ts", backupMain);
+      await cleanupCompiledAndBundleUrls();
     }
   }
 }
@@ -114,7 +118,7 @@ class BundleUrlAfterModifyingOneDependency implements TestCase {
     compileTypeScript("./test_data/bundle_test/main.ts");
     await bundleUrl("./test_data/bundle_test/url_to_modules.json");
     let mtime = fs.statSync("./test_data/bundle_test/main.html").mtimeMs;
-    let backupContent = fs.readFileSync("./test_data/bundle_test/lib_foo.ts");
+    let backupLibFoo = fs.readFileSync("./test_data/bundle_test/lib_foo.ts");
     fs.copyFileSync(
       "./test_data/bundle_test/lib_foo_modified.ts",
       "./test_data/bundle_test/lib_foo.ts"
@@ -130,16 +134,49 @@ class BundleUrlAfterModifyingOneDependency implements TestCase {
         .mtimeMs;
       Expectation.expect(mtimeActual > mtime);
     } finally {
-      cleanupCompiledAndBundleUrls();
-      fs.writeFileSync("./test_data/bundle_test/lib_foo.ts", backupContent);
+      fs.writeFileSync("./test_data/bundle_test/lib_foo.ts", backupLibFoo);
+      await cleanupCompiledAndBundleUrls();
+    }
+  }
+}
+
+class BundleUrlAfterRemovingOneDependency implements TestCase {
+  public name = "BundleUrlAfterRemovingOneDependency";
+
+  public async execute() {
+    // Prepare
+    compileTypeScript("./test_data/bundle_test/main.ts");
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
+    let mtime = fs.statSync("./test_data/bundle_test/main.html").mtimeMs;
+    let backupMain = fs.readFileSync("./test_data/bundle_test/main.ts");
+    let backupLibFoo = fs.readFileSync("./test_data/bundle_test/lib_foo.ts");
+    fs.copyFileSync(
+      "./test_data/bundle_test/main_removed_deps.ts",
+      "./test_data/bundle_test/main.ts"
+    );
+    fs.unlinkSync("./test_data/bundle_test/lib_foo.ts");
+    compileTypeScript("./test_data/bundle_test/main.ts");
+
+    // Execute
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
+
+    // Verify
+    try {
+      let mtimeActual = fs.statSync("./test_data/bundle_test/main.html")
+        .mtimeMs;
+      Expectation.expect(mtimeActual > mtime);
+    } finally {
+      fs.writeFileSync("./test_data/bundle_test/lib_foo.ts", backupLibFoo);
+      fs.writeFileSync("./test_data/bundle_test/main.ts", backupMain);
+      await cleanupCompiledAndBundleUrls();
     }
   }
 }
 
 runTests("BuildTest", [
-  new BundleUrlFileNotExits(),
   new BundleUrlForTheFirstTime(),
   new BundleUrlSkipBundlingWithoutChanges(),
   new BundleUrlAfterModifyingMainFile(),
   new BundleUrlAfterModifyingOneDependency(),
+  new BundleUrlAfterRemovingOneDependency(),
 ]);
