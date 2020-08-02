@@ -11,14 +11,10 @@ import {
   BundleInfoHolder,
 } from "./bundle_info";
 import { spawnSync } from "child_process";
-import {
-  BUNDLE_EXT,
-  FILE_NOT_EXISTS_ERROR_CODE,
-  GZIP_EXT,
-} from "selfage/common";
+import { FILE_NOT_EXISTS_ERROR_CODE, GZIP_EXT } from "selfage/common";
 import { parseJsonString } from "selfage/named_type_util";
 import { STREAM_READER } from "selfage/stream_reader";
-import { URL_TO_BUNDLES_HOLDER_DESCRIPTOR } from "selfage/url_to_bundle";
+import { URL_TO_MODULE_MAPPING_DESCRIPTOR } from "selfage/url_to_module";
 
 let pipeline = util.promisify(stream.pipeline);
 let BUNDLE_INFO_FILE_EXT = ".bundleinfo";
@@ -28,8 +24,8 @@ let FILE_EXTS_BUILT = [
   ".js",
   ".js.map",
   ".tsbuildinfo",
+  ".html",
   BUNDLE_INFO_FILE_EXT,
-  BUNDLE_EXT,
   GZIP_EXT,
 ];
 
@@ -37,10 +33,10 @@ export function build(): void {
   spawnSync("npx", ["tsc"], { stdio: "inherit" });
 }
 
-export async function bundle(urlToBundlesFile: string): Promise<void> {
-  let urlToBundlesBuffer: Buffer;
+export async function bundleUrl(urlToModulesFile: string): Promise<void> {
+  let urlToModulesBuffer: Buffer;
   try {
-    urlToBundlesBuffer = await fs.promises.readFile(urlToBundlesFile);
+    urlToModulesBuffer = await fs.promises.readFile(urlToModulesFile);
   } catch (e) {
     if (e.code === FILE_NOT_EXISTS_ERROR_CODE) {
       return;
@@ -49,18 +45,18 @@ export async function bundle(urlToBundlesFile: string): Promise<void> {
     }
   }
 
-  let urlToBundlesHolder = parseJsonString(
-    urlToBundlesBuffer.toString(),
-    URL_TO_BUNDLES_HOLDER_DESCRIPTOR
+  let urlToModuleMapping = parseJsonString(
+    urlToModulesBuffer.toString(),
+    URL_TO_MODULE_MAPPING_DESCRIPTOR
   );
-  let promisesToBundle = urlToBundlesHolder.urlToBundles.map(
-    async (urlToBundle): Promise<void> => {
-      let bundleInfoFile = urlToBundle.modulePath + BUNDLE_INFO_FILE_EXT;
+  let promisesToBundle = urlToModuleMapping.urlToModules.map(
+    async (urlToModule): Promise<void> => {
+      let bundleInfoFile = urlToModule.modulePath + BUNDLE_INFO_FILE_EXT;
       if (!(await needsBundle(bundleInfoFile))) {
         return;
       }
-      let sourceFile = urlToBundle.modulePath + ".js";
-      let targetFile = urlToBundle.modulePath + BUNDLE_EXT;
+      let sourceFile = urlToModule.modulePath + ".js";
+      let targetFile = urlToModule.modulePath + ".html";
       let compressedTargetFile = targetFile + GZIP_EXT;
       let promisesToWrite: Promise<void>[] = [];
 

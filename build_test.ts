@@ -1,5 +1,5 @@
 import fs = require("fs");
-import { bundle } from "./build";
+import { bundleUrl } from "./build";
 import { spawnSync } from "child_process";
 import { Expectation, TestCase, runTests } from "selfage/test_base";
 
@@ -12,78 +12,78 @@ function compileTypeScript(filePath: string) {
   });
 }
 
-function cleanupCompiledAndBundles() {
+function cleanupCompiledAndBundleUrls() {
   fs.unlinkSync("./test_data/bundle_test/main.js");
   fs.unlinkSync("./test_data/bundle_test/lib_foo.js");
   fs.unlinkSync("./test_data/bundle_test/lib_bar.js");
   fs.unlinkSync("./test_data/bundle_test/main.bundleinfo");
-  fs.unlinkSync("./test_data/bundle_test/main.bundle");
-  fs.unlinkSync("./test_data/bundle_test/main.bundle.tar.gz");
+  fs.unlinkSync("./test_data/bundle_test/main.html");
+  fs.unlinkSync("./test_data/bundle_test/main.html.tar.gz");
 }
 
-class FileNotExits implements TestCase {
-  public name = "FileNotExists";
+class BundleUrlFileNotExits implements TestCase {
+  public name = "BundleUrlFileNotExists";
 
   public async execute() {
     // Execute
-    await bundle("test_data/bundle_tests/no_such_file");
+    await bundleUrl("test_data/bundle_tests/no_such_file");
 
     // Verify
     // No error.
   }
 }
 
-class BundleForTheFirstTime implements TestCase {
-  public name = "BundleForTheFirstTime";
+class BundleUrlForTheFirstTime implements TestCase {
+  public name = "BundleUrlForTheFirstTime";
 
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/bundle_test/main.ts");
 
     // Execute
-    await bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
 
     // Verify
-    Expectation.expect(fs.existsSync("./test_data/bundle_test/main.bundle"));
+    Expectation.expect(fs.existsSync("./test_data/bundle_test/main.html"));
     Expectation.expect(
-      fs.existsSync("./test_data/bundle_test/main.bundle.tar.gz")
+      fs.existsSync("./test_data/bundle_test/main.html.tar.gz")
     );
 
-    cleanupCompiledAndBundles();
+    cleanupCompiledAndBundleUrls();
   }
 }
 
-class SkipBundlingWithoutChanges implements TestCase {
-  public name = "SkipBundlingWithoutChanges";
+class BundleUrlSkipBundlingWithoutChanges implements TestCase {
+  public name = "BundleUrlSkipBundlingWithoutChanges";
 
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/bundle_test/main.ts");
-    await bundle("./test_data/bundle_test/url_to_bundles.json");
-    let mtime = fs.statSync("./test_data/bundle_test/main.bundle").mtimeMs;
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
+    let mtime = fs.statSync("./test_data/bundle_test/main.html").mtimeMs;
 
     // Execute
-    await bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
 
     // Verify
     try {
-      let mtimeActual = fs.statSync("./test_data/bundle_test/main.bundle")
+      let mtimeActual = fs.statSync("./test_data/bundle_test/main.html")
         .mtimeMs;
       Expectation.expect(mtimeActual === mtime);
     } finally {
-      cleanupCompiledAndBundles();
+      cleanupCompiledAndBundleUrls();
     }
   }
 }
 
-class BundleAfterModifyingMainFile implements TestCase {
-  public name = "BundleAfterModifyingMainFile";
+class BundleUrlAfterModifyingMainFile implements TestCase {
+  public name = "BundleUrlAfterModifyingMainFile";
 
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/bundle_test/main.ts");
-    await bundle("./test_data/bundle_test/url_to_bundles.json");
-    let mtime = fs.statSync("./test_data/bundle_test/main.bundle").mtimeMs;
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
+    let mtime = fs.statSync("./test_data/bundle_test/main.html").mtimeMs;
     let backupContent = fs.readFileSync("./test_data/bundle_test/main.ts");
     fs.copyFileSync(
       "./test_data/bundle_test/main_modified.ts",
@@ -92,28 +92,28 @@ class BundleAfterModifyingMainFile implements TestCase {
     compileTypeScript("./test_data/bundle_test/main.ts");
 
     // Execute
-    await bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
 
     // Verify
     try {
-      let mtimeActual = fs.statSync("./test_data/bundle_test/main.bundle")
+      let mtimeActual = fs.statSync("./test_data/bundle_test/main.html")
         .mtimeMs;
       Expectation.expect(mtimeActual > mtime);
     } finally {
-      cleanupCompiledAndBundles();
+      cleanupCompiledAndBundleUrls();
       fs.writeFileSync("./test_data/bundle_test/main.ts", backupContent);
     }
   }
 }
 
-class BundleAfterModifyingOneDependency implements TestCase {
-  public name = "BundleAfterModifyingOneDependency";
+class BundleUrlAfterModifyingOneDependency implements TestCase {
+  public name = "BundleUrlAfterModifyingOneDependency";
 
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/bundle_test/main.ts");
-    await bundle("./test_data/bundle_test/url_to_bundles.json");
-    let mtime = fs.statSync("./test_data/bundle_test/main.bundle").mtimeMs;
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
+    let mtime = fs.statSync("./test_data/bundle_test/main.html").mtimeMs;
     let backupContent = fs.readFileSync("./test_data/bundle_test/lib_foo.ts");
     fs.copyFileSync(
       "./test_data/bundle_test/lib_foo_modified.ts",
@@ -122,24 +122,24 @@ class BundleAfterModifyingOneDependency implements TestCase {
     compileTypeScript("./test_data/bundle_test/main.ts");
 
     // Execute
-    await bundle("./test_data/bundle_test/url_to_bundles.json");
+    await bundleUrl("./test_data/bundle_test/url_to_modules.json");
 
     // Verify
     try {
-      let mtimeActual = fs.statSync("./test_data/bundle_test/main.bundle")
+      let mtimeActual = fs.statSync("./test_data/bundle_test/main.html")
         .mtimeMs;
       Expectation.expect(mtimeActual > mtime);
     } finally {
-      cleanupCompiledAndBundles();
+      cleanupCompiledAndBundleUrls();
       fs.writeFileSync("./test_data/bundle_test/lib_foo.ts", backupContent);
     }
   }
 }
 
-runTests("BuilderTest", [
-  new FileNotExits(),
-  new BundleForTheFirstTime(),
-  new SkipBundlingWithoutChanges(),
-  new BundleAfterModifyingMainFile(),
-  new BundleAfterModifyingOneDependency(),
+runTests("BuildTest", [
+  new BundleUrlFileNotExits(),
+  new BundleUrlForTheFirstTime(),
+  new BundleUrlSkipBundlingWithoutChanges(),
+  new BundleUrlAfterModifyingMainFile(),
+  new BundleUrlAfterModifyingOneDependency(),
 ]);
