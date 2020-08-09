@@ -2,7 +2,7 @@
 import fs = require("fs");
 import path = require("path");
 import prettier = require("prettier");
-import { build, bundleUrl, clean } from "./build";
+import { build, buildUrl, clean } from "./build";
 import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
@@ -36,16 +36,18 @@ async function main(): Promise<void> {
       }
     );
   program
-    .command("bundleUrl")
-    .alias("burl")
+    .command("buildurl")
     .description(
-      `Bundle modules into HTML files according to the config in ` +
-        `${URL_TO_MODULES_CONFIG_FILE}.`
+      `Build files and bundle modules mapped by urls into HTML files ` +
+        `according to the config in ${URL_TO_MODULES_CONFIG_FILE}.`
     )
     .action(
       async (): Promise<void> => {
-        build();
-        await bundleUrl(URL_TO_MODULES_CONFIG_FILE);
+        let success = build();
+        if (!success) {
+          return;
+        }
+        await buildUrl(URL_TO_MODULES_CONFIG_FILE);
       }
     );
   program
@@ -53,7 +55,7 @@ async function main(): Promise<void> {
     .description("Delete all files generated from building and bundling.")
     .action(
       async (): Promise<void> => {
-        await clean();
+        await clean(".");
       }
     );
   program

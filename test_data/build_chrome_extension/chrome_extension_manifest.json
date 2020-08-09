@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "version": "2.4.3",
+  "browser_action": {
+    "default_popup":  "browser_action/main"
+  },
+  "background": {
+    "scripts": [
+      "background/main",
+      "background/main2"
+    ]
+  },
+  "content_scripts": [{
+    "matches": ["https://www.xxxx.com/*"],
+    "js": [
+      "content_script/main",
+      "content_script/main2"
+    ]
+  }, {
+    "matches": ["https://static.xxxx.com/*"],
+    "js": ["content_script/static_main"]
+  }]
+}

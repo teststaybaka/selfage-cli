@@ -1,6 +1,6 @@
 {
   "urlToModules": [{
     "url": "trivial",
-    "modulePath": "./test_data/bundle_test/main"
+    "modulePath": "./test_data/build_url/main"
   }]
 }
