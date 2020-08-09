@@ -1,7 +1,7 @@
 import fs = require("fs");
 import {
   buildChromeExtension,
-  buildUrl,
+  buildWeb,
   clean,
   packChromeExtension,
 } from "./build";
@@ -29,50 +29,50 @@ async function unlinkFiles(...files: string[]) {
 
 async function cleanupBuilt() {
   await unlinkFiles(
-    "./test_data/build_url/main.js",
-    "./test_data/build_url/lib_foo.js",
-    "./test_data/build_url/lib_bar.js",
-    "./test_data/build_url/main.filemtime",
-    "./test_data/build_url/main.html",
-    "./test_data/build_url/main.html.gz"
+    "./test_data/build_web/main.js",
+    "./test_data/build_web/lib_foo.js",
+    "./test_data/build_web/lib_bar.js",
+    "./test_data/build_web/main.filemtime",
+    "./test_data/build_web/main.html",
+    "./test_data/build_web/main.html.gz"
   );
 }
 
-class BuildUrlForTheFirstTime implements TestCase {
-  public name = "BuildUrlForTheFirstTime";
+class BuildWebForTheFirstTime implements TestCase {
+  public name = "BuildWebForTheFirstTime";
 
   public async execute() {
     // Prepare
-    compileTypeScript("./test_data/build_url/main.ts");
+    compileTypeScript("./test_data/build_web/main.ts");
 
     // Execute
-    await buildUrl("./test_data/build_url/url_to_modules.json");
+    await buildWeb("./test_data/build_web");
 
     // Verify
-    Expectation.expect(fs.existsSync("./test_data/build_url/main.html"));
-    Expectation.expect(fs.existsSync("./test_data/build_url/main.html.gz"));
+    Expectation.expect(fs.existsSync("./test_data/build_web/main.html"));
+    Expectation.expect(fs.existsSync("./test_data/build_web/main.html.gz"));
 
     // Cleanup
     await cleanupBuilt();
   }
 }
 
-class BuildUrlSkipBundlingWithoutChanges implements TestCase {
-  public name = "BuildUrlSkipBundlingWithoutChanges";
+class BuildWebSkipBundlingWithoutChanges implements TestCase {
+  public name = "BuildWebSkipBundlingWithoutChanges";
 
   public async execute() {
     // Prepare
-    compileTypeScript("./test_data/build_url/main.ts");
-    await buildUrl("./test_data/build_url/url_to_modules.json");
-    let mtime = fs.statSync("./test_data/build_url/main.html").mtimeMs;
+    compileTypeScript("./test_data/build_web/main.ts");
+    await buildWeb("./test_data/build_web");
+    let mtime = fs.statSync("./test_data/build_web/main.html").mtimeMs;
 
     // Execute
-    await buildUrl("./test_data/build_url/url_to_modules.json");
+    await buildWeb("./test_data/build_web");
 
     // Verify
     try {
-      assert(fs.existsSync("./test_data/build_url/main.html"));
-      let mtimeActual = fs.statSync("./test_data/build_url/main.html").mtimeMs;
+      assert(fs.existsSync("./test_data/build_web/main.html"));
+      let mtimeActual = fs.statSync("./test_data/build_web/main.html").mtimeMs;
       Expectation.expect(mtimeActual === mtime);
     } finally {
       // Cleanup
@@ -81,97 +81,97 @@ class BuildUrlSkipBundlingWithoutChanges implements TestCase {
   }
 }
 
-class BuildUrlAfterModifyingMainFile implements TestCase {
-  public name = "BuildUrlAfterModifyingMainFile";
+class BuildWebAfterModifyingMainFile implements TestCase {
+  public name = "BuildWebAfterModifyingMainFile";
 
   public async execute() {
     // Prepare
-    compileTypeScript("./test_data/build_url/main.ts");
-    await buildUrl("./test_data/build_url/url_to_modules.json");
-    let mtime = fs.statSync("./test_data/build_url/main.html").mtimeMs;
-    let backupMain = fs.readFileSync("./test_data/build_url/main.ts");
+    compileTypeScript("./test_data/build_web/main.ts");
+    await buildWeb("./test_data/build_web");
+    let mtime = fs.statSync("./test_data/build_web/main.html").mtimeMs;
+    let backupMain = fs.readFileSync("./test_data/build_web/main.ts");
     fs.copyFileSync(
-      "./test_data/build_url/main_modified.ts",
-      "./test_data/build_url/main.ts"
+      "./test_data/build_web/main_modified.ts",
+      "./test_data/build_web/main.ts"
     );
-    compileTypeScript("./test_data/build_url/main.ts");
+    compileTypeScript("./test_data/build_web/main.ts");
 
     // Execute
-    await buildUrl("./test_data/build_url/url_to_modules.json");
+    await buildWeb("./test_data/build_web");
 
     // Verify
     try {
-      assert(fs.existsSync("./test_data/build_url/main.html"));
-      let mtimeActual = fs.statSync("./test_data/build_url/main.html").mtimeMs;
+      assert(fs.existsSync("./test_data/build_web/main.html"));
+      let mtimeActual = fs.statSync("./test_data/build_web/main.html").mtimeMs;
       Expectation.expect(mtimeActual > mtime);
     } finally {
       // Cleanup
-      fs.writeFileSync("./test_data/build_url/main.ts", backupMain);
+      fs.writeFileSync("./test_data/build_web/main.ts", backupMain);
       await cleanupBuilt();
     }
   }
 }
 
-class BuildUrlAfterModifyingOneDependency implements TestCase {
-  public name = "BuildUrlAfterModifyingOneDependency";
+class BuildWebAfterModifyingOneDependency implements TestCase {
+  public name = "BuildWebAfterModifyingOneDependency";
 
   public async execute() {
     // Prepare
-    compileTypeScript("./test_data/build_url/main.ts");
-    await buildUrl("./test_data/build_url/url_to_modules.json");
-    let mtime = fs.statSync("./test_data/build_url/main.html").mtimeMs;
-    let backupLibFoo = fs.readFileSync("./test_data/build_url/lib_foo.ts");
+    compileTypeScript("./test_data/build_web/main.ts");
+    await buildWeb("./test_data/build_web");
+    let mtime = fs.statSync("./test_data/build_web/main.html").mtimeMs;
+    let backupLibFoo = fs.readFileSync("./test_data/build_web/lib_foo.ts");
     fs.copyFileSync(
-      "./test_data/build_url/lib_foo_modified.ts",
-      "./test_data/build_url/lib_foo.ts"
+      "./test_data/build_web/lib_foo_modified.ts",
+      "./test_data/build_web/lib_foo.ts"
     );
-    compileTypeScript("./test_data/build_url/main.ts");
+    compileTypeScript("./test_data/build_web/main.ts");
 
     // Execute
-    await buildUrl("./test_data/build_url/url_to_modules.json");
+    await buildWeb("./test_data/build_web");
 
     // Verify
     try {
-      assert(fs.existsSync("./test_data/build_url/main.html"));
-      let mtimeActual = fs.statSync("./test_data/build_url/main.html").mtimeMs;
+      assert(fs.existsSync("./test_data/build_web/main.html"));
+      let mtimeActual = fs.statSync("./test_data/build_web/main.html").mtimeMs;
       Expectation.expect(mtimeActual > mtime);
     } finally {
       // Cleanup
-      fs.writeFileSync("./test_data/build_url/lib_foo.ts", backupLibFoo);
+      fs.writeFileSync("./test_data/build_web/lib_foo.ts", backupLibFoo);
       await cleanupBuilt();
     }
   }
 }
 
-class BuildUrlAfterRemovingOneDependency implements TestCase {
-  public name = "BuildUrlAfterRemovingOneDependency";
+class BuildWebAfterRemovingOneDependency implements TestCase {
+  public name = "BuildWebAfterRemovingOneDependency";
 
   public async execute() {
     // Prepare
-    compileTypeScript("./test_data/build_url/main.ts");
-    await buildUrl("./test_data/build_url/url_to_modules.json");
-    let mtime = fs.statSync("./test_data/build_url/main.html").mtimeMs;
-    let backupMain = fs.readFileSync("./test_data/build_url/main.ts");
-    let backupLibFoo = fs.readFileSync("./test_data/build_url/lib_foo.ts");
+    compileTypeScript("./test_data/build_web/main.ts");
+    await buildWeb("./test_data/build_web");
+    let mtime = fs.statSync("./test_data/build_web/main.html").mtimeMs;
+    let backupMain = fs.readFileSync("./test_data/build_web/main.ts");
+    let backupLibFoo = fs.readFileSync("./test_data/build_web/lib_foo.ts");
     fs.copyFileSync(
-      "./test_data/build_url/main_removed_deps.ts",
-      "./test_data/build_url/main.ts"
+      "./test_data/build_web/main_removed_deps.ts",
+      "./test_data/build_web/main.ts"
     );
-    fs.unlinkSync("./test_data/build_url/lib_foo.ts");
-    compileTypeScript("./test_data/build_url/main.ts");
+    fs.unlinkSync("./test_data/build_web/lib_foo.ts");
+    compileTypeScript("./test_data/build_web/main.ts");
 
     // Execute
-    await buildUrl("./test_data/build_url/url_to_modules.json");
+    await buildWeb("./test_data/build_web");
 
     // Verify
     try {
-      assert(fs.existsSync("./test_data/build_url/main.html"));
-      let mtimeActual = fs.statSync("./test_data/build_url/main.html").mtimeMs;
+      assert(fs.existsSync("./test_data/build_web/main.html"));
+      let mtimeActual = fs.statSync("./test_data/build_web/main.html").mtimeMs;
       Expectation.expect(mtimeActual > mtime);
     } finally {
       // Cleanup
-      fs.writeFileSync("./test_data/build_url/lib_foo.ts", backupLibFoo);
-      fs.writeFileSync("./test_data/build_url/main.ts", backupMain);
+      fs.writeFileSync("./test_data/build_web/lib_foo.ts", backupLibFoo);
+      fs.writeFileSync("./test_data/build_web/main.ts", backupMain);
       await cleanupBuilt();
     }
   }
@@ -447,11 +447,11 @@ class CleanRecursiveFiles implements TestCase {
 // Simple tests only verifying files generated or not. Functional tests requires
 // setting up local automated browser testing environment.
 runTests("BuildTest", [
-  new BuildUrlForTheFirstTime(),
-  new BuildUrlSkipBundlingWithoutChanges(),
-  new BuildUrlAfterModifyingMainFile(),
-  new BuildUrlAfterModifyingOneDependency(),
-  new BuildUrlAfterRemovingOneDependency(),
+  new BuildWebForTheFirstTime(),
+  new BuildWebSkipBundlingWithoutChanges(),
+  new BuildWebAfterModifyingMainFile(),
+  new BuildWebAfterModifyingOneDependency(),
+  new BuildWebAfterRemovingOneDependency(),
   new BuildChromeExtesnion(),
   new PackChromeExtension(),
   new CleanCurentDirectory(),

@@ -13,7 +13,11 @@ import {
   FileMtimeList,
 } from "./file_mtime";
 import { spawnSync } from "child_process";
-import { FILE_NOT_EXISTS_ERROR_CODE, GZIP_EXT } from "selfage/common";
+import {
+  FILE_NOT_EXISTS_ERROR_CODE,
+  GZIP_EXT,
+  URL_TO_MODULES_CONFIG_FILE,
+} from "selfage/common";
 import { parseJsonString } from "selfage/named_type_util";
 import { STREAM_READER } from "selfage/stream_reader";
 import { URL_TO_MODULE_MAPPING_DESCRIPTOR } from "selfage/url_to_module";
@@ -48,25 +52,28 @@ export function build(): boolean {
   return res.status === 0;
 }
 
-export async function buildUrl(urlToModulesFile: string): Promise<void> {
-  let urlToModulesBuffer = await fs.promises.readFile(urlToModulesFile);
+export async function buildWeb(rootDir: string): Promise<void> {
+  let urlToModulesBuffer = await fs.promises.readFile(
+    path.join(rootDir, URL_TO_MODULES_CONFIG_FILE)
+  );
   let urlToModuleMapping = parseJsonString(
     urlToModulesBuffer.toString(),
     URL_TO_MODULE_MAPPING_DESCRIPTOR
   );
   let promisesToBundle = urlToModuleMapping.urlToModules.map(
     async (urlToModule): Promise<void> => {
+      let moduleFullPath = path.join(rootDir, urlToModule.modulePath);
       let {
         isBundlingNeeded,
         code,
         promiseToWriteFileMtimes,
-      } = await bundleSourceModule(urlToModule.modulePath);
+      } = await bundleSourceModule(moduleFullPath);
       if (!isBundlingNeeded) {
         return;
       }
 
       let htmlContent = embedIntoHtml(code);
-      let htmlFile = urlToModule.modulePath + ".html";
+      let htmlFile = moduleFullPath + ".html";
       let promiseToWriteHtmlFile = fs.promises.writeFile(htmlFile, htmlContent);
 
       let compressedHtmlFile = htmlFile + GZIP_EXT;

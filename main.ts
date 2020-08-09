@@ -7,7 +7,7 @@ import {
   CHROME_EXTENSION_PACKAGE_NAME,
   build,
   buildChromeExtension,
-  buildUrl,
+  buildWeb,
   clean,
   packChromeExtension,
 } from "./build";
@@ -52,10 +52,9 @@ async function main(): Promise<void> {
     .action(
       async (): Promise<void> => {
         let success = build();
-        if (!success) {
-          return;
+        if (success) {
+          await buildWeb(".");
         }
-        await buildUrl(URL_TO_MODULES_CONFIG_FILE);
       }
     );
   program
@@ -69,10 +68,9 @@ async function main(): Promise<void> {
     .action(
       async (): Promise<void> => {
         let success = build();
-        if (!success) {
-          return;
+        if (success) {
+          await buildChromeExtension(".");
         }
-        await buildChromeExtension(".");
       }
     );
   program
@@ -85,10 +83,9 @@ async function main(): Promise<void> {
     .action(
       async (): Promise<void> => {
         let success = build();
-        if (!success) {
-          return;
+        if (success) {
+          await packChromeExtension(".");
         }
-        await packChromeExtension(".");
       }
     );
   program
