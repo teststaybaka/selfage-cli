@@ -18,10 +18,11 @@ import { parseJsonString } from "selfage/named_type_util";
 import { STREAM_READER } from "selfage/stream_reader";
 import { URL_TO_MODULE_MAPPING_DESCRIPTOR } from "selfage/url_to_module";
 
+export let CHROME_EXTENSION_MANIFEST_NAME = "chrome_extension_manifest.json";
+export let CHROME_EXTENSION_PACKAGE_NAME = "chrome_extension.zip";
+
 let pipeline = util.promisify(stream.pipeline);
-let CHROME_EXTENSION_MANIFEST_NAME = "chrome_extension_manifest.json";
 let CHROME_EXTENSION_BUILT_MANIFEST_NAME = "manifest.json";
-let CHROME_EXTENSION_PACKAGE_NAME = "chrome_extension.zip";
 let FILE_MTIME_CACHE_EXT = ".filemtime";
 let NODE_MODULES_DIR = "node_modules";
 let FILE_PATTERNS_BUILT = [

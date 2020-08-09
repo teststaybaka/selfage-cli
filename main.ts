@@ -2,7 +2,15 @@
 import fs = require("fs");
 import path = require("path");
 import prettier = require("prettier");
-import { build, buildUrl, clean } from "./build";
+import {
+  CHROME_EXTENSION_MANIFEST_NAME,
+  CHROME_EXTENSION_PACKAGE_NAME,
+  build,
+  buildChromeExtension,
+  buildUrl,
+  clean,
+  packChromeExtension,
+} from "./build";
 import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
@@ -36,7 +44,7 @@ async function main(): Promise<void> {
       }
     );
   program
-    .command("buildurl")
+    .command("buildweb")
     .description(
       `Build files and bundle modules mapped by urls into HTML files ` +
         `according to the config in ${URL_TO_MODULES_CONFIG_FILE}.`
@@ -48,6 +56,39 @@ async function main(): Promise<void> {
           return;
         }
         await buildUrl(URL_TO_MODULES_CONFIG_FILE);
+      }
+    );
+  program
+    .command("buildchromeextension")
+    .alias("buildcext")
+    .description(
+      `Build files and bundle modules needed by Chrome extension as specified` +
+        ` in${CHROME_EXTENSION_MANIFEST_NAME}, while generating manifest.json` +
+        ` pointed to the bundled files.`
+    )
+    .action(
+      async (): Promise<void> => {
+        let success = build();
+        if (!success) {
+          return;
+        }
+        await buildChromeExtension(".");
+      }
+    );
+  program
+    .command("packchromeextension")
+    .alias("packcext")
+    .description(
+      `Build files and bundle modules, followed by packing Chrome ` +
+        `extension as ${CHROME_EXTENSION_PACKAGE_NAME}.`
+    )
+    .action(
+      async (): Promise<void> => {
+        let success = build();
+        if (!success) {
+          return;
+        }
+        await packChromeExtension(".");
       }
     );
   program
