@@ -7,11 +7,7 @@ import UglifyJS = require("uglify-js");
 import util = require("util");
 import zlib = require("zlib");
 import ignore from "ignore";
-import {
-  FILE_MTIME_LIST_DESCRIPTOR,
-  FileMtime,
-  FileMtimeList,
-} from "./file_mtime";
+import { FILE_MTIME_LIST, FileMtime, FileMtimeList } from "./file_mtime";
 import { spawnSync } from "child_process";
 import {
   FILE_NOT_EXISTS_ERROR_CODE,
@@ -138,7 +134,7 @@ async function needsBundle(fileMtimesCacheFile: string): Promise<boolean> {
 
   let fileMtimeList = parseJsonString(
     fileMtimesBuffer.toString(),
-    FILE_MTIME_LIST_DESCRIPTOR
+    FILE_MTIME_LIST
   );
   let promisesToCheck = fileMtimeList.fileMtimes.map(
     async (fileMtime): Promise<boolean> => {

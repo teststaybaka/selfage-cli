@@ -9,7 +9,7 @@ export interface FileMtime {
   mtimeMs?: number;
 }
 
-export let FILE_MTIME_DESCRIPTOR: NamedTypeDescriptor<FileMtime> = {
+export let FILE_MTIME: NamedTypeDescriptor<FileMtime> = {
   name: "FileMtime",
   kind: NamedTypeKind.MESSAGE,
   messageFields: [
@@ -28,14 +28,14 @@ export interface FileMtimeList {
   fileMtimes?: FileMtime[];
 }
 
-export let FILE_MTIME_LIST_DESCRIPTOR: NamedTypeDescriptor<FileMtimeList> = {
+export let FILE_MTIME_LIST: NamedTypeDescriptor<FileMtimeList> = {
   name: "FileMtimeList",
   kind: NamedTypeKind.MESSAGE,
   messageFields: [
     {
       name: "fileMtimes",
       type: MessageFieldType.NAMED_TYPE,
-      namedTypeDescriptor: FILE_MTIME_DESCRIPTOR,
+      namedTypeDescriptor: FILE_MTIME,
       isArray: true,
     },
   ],

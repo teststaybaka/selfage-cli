@@ -168,7 +168,7 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
         upperCaseSnakedName += char.toUpperCase();
       }
     }
-    return upperCaseSnakedName + "_DESCRIPTOR";
+    return upperCaseSnakedName;
   }
 
   private static getVariableType(
