@@ -12,5 +12,3 @@ let nestedData: NestedData = {
   },
   color: Color.RED,
 };
-console.log(extendedData);
-console.log(nestedData);

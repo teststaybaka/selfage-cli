@@ -1,9 +1,9 @@
-import { BASIC_DATA_DESCRIPTOR, COLOR_DESCRIPTOR } from "./test_message_basic";
+import { BASIC_DATA, COLOR } from "./test_message_basic";
 import {
-  EXTEND_NESTED_DATA_DESCRIPTOR,
+  EXTEND_NESTED_DATA,
   ExtendNestedData,
 } from "./test_message_field_extended";
-import { EXTENDED_DATA_DESCRIPTOR } from "./test_message_imported";
+import { EXTENDED_DATA } from "./test_message_imported";
 import { NamedTypeKind } from "selfage/named_type_descriptor";
 import { assert } from "selfage/test_base";
 
@@ -14,24 +14,16 @@ let extendNestedData: ExtendNestedData = {
     extendedField: "lalala",
   },
 };
-console.log(extendNestedData);
 
 // Verify
-assert(EXTEND_NESTED_DATA_DESCRIPTOR.name === "ExtendNestedData");
-assert(EXTEND_NESTED_DATA_DESCRIPTOR.kind === NamedTypeKind.MESSAGE);
-assert(EXTEND_NESTED_DATA_DESCRIPTOR.messageFields.length === 3);
-assert(EXTEND_NESTED_DATA_DESCRIPTOR.messageFields[0].name === "basicData");
+assert(EXTEND_NESTED_DATA.name === "ExtendNestedData");
+assert(EXTEND_NESTED_DATA.kind === NamedTypeKind.MESSAGE);
+assert(EXTEND_NESTED_DATA.messageFields.length === 3);
+assert(EXTEND_NESTED_DATA.messageFields[0].name === "basicData");
+assert(EXTEND_NESTED_DATA.messageFields[0].namedTypeDescriptor === BASIC_DATA);
+assert(EXTEND_NESTED_DATA.messageFields[1].name === "color");
+assert(EXTEND_NESTED_DATA.messageFields[1].namedTypeDescriptor === COLOR);
+assert(EXTEND_NESTED_DATA.messageFields[2].name === "basicData");
 assert(
-  EXTEND_NESTED_DATA_DESCRIPTOR.messageFields[0].namedTypeDescriptor ===
-    BASIC_DATA_DESCRIPTOR
-);
-assert(EXTEND_NESTED_DATA_DESCRIPTOR.messageFields[1].name === "color");
-assert(
-  EXTEND_NESTED_DATA_DESCRIPTOR.messageFields[1].namedTypeDescriptor ===
-    COLOR_DESCRIPTOR
-);
-assert(EXTEND_NESTED_DATA_DESCRIPTOR.messageFields[2].name === "basicData");
-assert(
-  EXTEND_NESTED_DATA_DESCRIPTOR.messageFields[2].namedTypeDescriptor ===
-    EXTENDED_DATA_DESCRIPTOR
+  EXTEND_NESTED_DATA.messageFields[2].namedTypeDescriptor === EXTENDED_DATA
 );

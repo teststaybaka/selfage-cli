@@ -48,7 +48,6 @@ function parameterizedTest(
       "npx",
       [
         "tsc",
-        "--noUnusedLocals",
         "--noImplicitAny",
         "--sourceMap",
         testTargetModule + "_verifier.ts",
