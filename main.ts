@@ -153,6 +153,10 @@ async function main(): Promise<void> {
         `at all, but cannot be .d.ts, which will be changed to a ts file.`
     )
     .option(
+      "-p, --package-directory [dir]",
+      "Specify the directory that contains the NamedTypeDescriptor interface."
+    )
+    .option(
       "--dry-run",
       "Print the generated implementations instead of overwriting the file."
     )
@@ -160,8 +164,13 @@ async function main(): Promise<void> {
       async (file, options): Promise<void> => {
         let tsFile = forceFileExtensions(file, ".ts");
         let contentToBeProcessed = fs.readFileSync(tsFile).toString();
+
+        let packageDirectory = options.packageDirectory
+          ? options.packageDirectory
+          : "selfage";
         let contentGenerated = new MessageGenerator(
-          contentToBeProcessed
+          contentToBeProcessed,
+          packageDirectory
         ).generate();
         let contentFormatted = prettier.format(contentGenerated, {
           parser: "typescript",

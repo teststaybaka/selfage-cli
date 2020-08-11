@@ -16,7 +16,8 @@ function parameterizedTest(
     let originalContent = readFileSync(filePath);
     originalContents.set(filePath, originalContent);
     let contentGenerated = new MessageGenerator(
-      originalContent.toString()
+      originalContent.toString(),
+      "selfage"
     ).generate();
     writeFileSync(filePath, contentGenerated);
   }
@@ -26,7 +27,8 @@ function parameterizedTest(
 
   // Execute
   let contentGenerated = new MessageGenerator(
-    originalContent.toString()
+    originalContent.toString(),
+    "selfage"
   ).generate();
   writeFileSync(filePath, contentGenerated);
 

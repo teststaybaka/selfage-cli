@@ -24,7 +24,10 @@ export class MessageGenerator {
   private namedImportsToPath = new Map<string, string>();
   private content = "";
 
-  public constructor(private originalContent: string) {}
+  public constructor(
+    private originalContent: string,
+    private namedTypeDescriptorDir: string
+  ) {}
 
   public generate(): string {
     let sourceFile = createSourceFile(
@@ -203,7 +206,8 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
   }
 
   private importFromNamedTypeDescriptor(toBeImported: string) {
-    let namedTypeDescriptorPath = "selfage/named_type_descriptor";
+    let namedTypeDescriptorPath =
+      this.namedTypeDescriptorDir + "/named_type_descriptor";
     let namedImports = this.pathToNamedImports.get(namedTypeDescriptorPath);
     if (!namedImports) {
       namedImports = new Set();
