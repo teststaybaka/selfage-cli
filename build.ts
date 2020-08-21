@@ -16,7 +16,7 @@ import {
 } from "selfage/common";
 import { parseJsonString } from "selfage/named_type_util";
 import { STREAM_READER } from "selfage/stream_reader";
-import { URL_TO_MODULE_MAPPING_DESCRIPTOR } from "selfage/url_to_module";
+import { URL_TO_MODULE_MAPPING } from "selfage/url_to_module";
 
 export let CHROME_EXTENSION_MANIFEST_NAME = "chrome_extension_manifest.json";
 export let CHROME_EXTENSION_PACKAGE_NAME = "chrome_extension.zip";
@@ -54,7 +54,7 @@ export async function buildWeb(rootDir: string): Promise<void> {
   );
   let urlToModuleMapping = parseJsonString(
     urlToModulesBuffer.toString(),
-    URL_TO_MODULE_MAPPING_DESCRIPTOR
+    URL_TO_MODULE_MAPPING
   );
   let promisesToBundle = urlToModuleMapping.urlToModules.map(
     async (urlToModule): Promise<void> => {

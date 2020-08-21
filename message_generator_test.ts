@@ -1,7 +1,7 @@
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
-import { Expectation, TestCase, runTests } from "selfage/test_base";
+import { Expectation, TestCase, TestSet } from "selfage/test_base";
 
 function parameterizedTest(
   testTargetModule: string,
@@ -146,10 +146,13 @@ class GenerateFieldExtendedMessages implements TestCase {
   }
 }
 
-runTests("MessageGeneratorTest", [
-  new GenerateBasicMessages(),
-  new GenerateNestedMessages(),
-  new GenerateExtendedMessages(),
-  new GenerateImportedMessages(),
-  new GenerateFieldExtendedMessages(),
-]);
+export let MESSAGE_GENERATOR_TEST: TestSet = {
+  name: "MessageGeneratorTest",
+  cases: [
+    new GenerateBasicMessages(),
+    new GenerateNestedMessages(),
+    new GenerateExtendedMessages(),
+    new GenerateImportedMessages(),
+    new GenerateFieldExtendedMessages(),
+  ],
+};

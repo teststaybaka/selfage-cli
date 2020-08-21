@@ -39,6 +39,7 @@ export class ImportsSorter {
           importNode.name.text
         );
         this.writeUncapturedContentInBetween(node);
+        endPos = ImportsSorter.getEnd(node);
         continue;
       } else if (node.kind === SyntaxKind.ImportDeclaration) {
         let importNode = node as ImportDeclaration;
@@ -46,6 +47,7 @@ export class ImportsSorter {
         if (!importNode.importClause) {
           this.sideEffectImports.add(importPath);
           this.writeUncapturedContentInBetween(node);
+          endPos = ImportsSorter.getEnd(node);
           continue;
         } else if (!importNode.importClause.namedBindings) {
           this.defaultImports.set(
@@ -53,6 +55,7 @@ export class ImportsSorter {
             importNode.importClause.name.text
           );
           this.writeUncapturedContentInBetween(node);
+          endPos = ImportsSorter.getEnd(node);
           continue;
         } else if (
           importNode.importClause.namedBindings.kind ===
@@ -63,6 +66,7 @@ export class ImportsSorter {
             (importNode.importClause.namedBindings as NamespaceImport).name.text
           );
           this.writeUncapturedContentInBetween(node);
+          endPos = ImportsSorter.getEnd(node);
           continue;
         } else if (
           importNode.importClause.namedBindings.kind === SyntaxKind.NamedImports
@@ -76,10 +80,10 @@ export class ImportsSorter {
             names.add(specifier.getText());
           }
           this.writeUncapturedContentInBetween(node);
+          endPos = ImportsSorter.getEnd(node);
           continue;
         }
       }
-      endPos = node.getFullStart();
       break;
     }
 
@@ -114,5 +118,9 @@ export class ImportsSorter {
     if (newContent) {
       this.content += newContent + "\n";
     }
+  }
+
+  private static getEnd(node: TsNode): number {
+    return node.getStart() + node.getWidth();
   }
 }

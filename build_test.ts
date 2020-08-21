@@ -6,7 +6,7 @@ import {
   packChromeExtension,
 } from "./build";
 import { spawnSync } from "child_process";
-import { Expectation, TestCase, assert, runTests } from "selfage/test_base";
+import { Expectation, TestCase, TestSet, assert } from "selfage/test_base";
 
 function compileTypeScript(...files: string[]) {
   spawnSync("npx", ["tsc", "--inlineSourceMap", "--inlineSources", ...files], {
@@ -446,14 +446,17 @@ class CleanRecursiveFiles implements TestCase {
 
 // Simple tests only verifying files generated or not. Functional tests requires
 // setting up local automated browser testing environment.
-runTests("BuildTest", [
-  new BuildWebForTheFirstTime(),
-  new BuildWebSkipBundlingWithoutChanges(),
-  new BuildWebAfterModifyingMainFile(),
-  new BuildWebAfterModifyingOneDependency(),
-  new BuildWebAfterRemovingOneDependency(),
-  new BuildChromeExtesnion(),
-  new PackChromeExtension(),
-  new CleanCurentDirectory(),
-  new CleanRecursiveFiles(),
-]);
+export let BUILD_TEST: TestSet = {
+  name: "BuildTest",
+  cases: [
+    new BuildWebForTheFirstTime(),
+    new BuildWebSkipBundlingWithoutChanges(),
+    new BuildWebAfterModifyingMainFile(),
+    new BuildWebAfterModifyingOneDependency(),
+    new BuildWebAfterRemovingOneDependency(),
+    new BuildChromeExtesnion(),
+    new PackChromeExtension(),
+    new CleanCurentDirectory(),
+    new CleanRecursiveFiles(),
+  ],
+};
