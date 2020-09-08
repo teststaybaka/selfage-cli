@@ -22,6 +22,7 @@ export let CHROME_EXTENSION_MANIFEST_NAME = "chrome_extension_manifest.json";
 export let CHROME_EXTENSION_PACKAGE_NAME = "chrome_extension.zip";
 
 let pipeline = util.promisify(stream.pipeline);
+let ENVIRONMENT_FLAG_FILE = "environment_flag.js";
 let CHROME_EXTENSION_BUILT_MANIFEST_NAME = "manifest.json";
 let FILE_MTIME_CACHE_EXT = ".filemtime";
 let NODE_MODULES_DIR = "node_modules";
@@ -48,7 +49,10 @@ export function build(): boolean {
   return res.status === 0;
 }
 
-export async function buildWeb(rootDir: string): Promise<void> {
+export async function buildWeb(
+  rootDir: string,
+  environment?: string
+): Promise<void> {
   let urlToModulesBuffer = await fs.promises.readFile(
     path.join(rootDir, URL_TO_MODULES_CONFIG_FILE)
   );
@@ -63,7 +67,7 @@ export async function buildWeb(rootDir: string): Promise<void> {
         isBundlingNeeded,
         code,
         promiseToWriteFileMtimes,
-      } = await bundleSourceModule(moduleFullPath);
+      } = await bundleSourceModule(moduleFullPath, environment);
       if (!isBundlingNeeded) {
         return;
       }
@@ -89,7 +93,8 @@ export async function buildWeb(rootDir: string): Promise<void> {
 }
 
 async function bundleSourceModule(
-  sourceModule: string
+  sourceModule: string,
+  environment?: string
 ): Promise<{
   isBundlingNeeded: boolean;
   code?: string;
@@ -99,8 +104,15 @@ async function bundleSourceModule(
   if (!(await needsBundle(fileMtimesCacheFile))) {
     return { isBundlingNeeded: false };
   }
+  let environmentValue = environment ? `"${environment}"` : `undefined`;
+  await fs.promises.writeFile(
+    ENVIRONMENT_FLAG_FILE,
+    `let environment_flag = ${environmentValue};`
+  );
   let sourceFile = sourceModule + ".js";
-  let browserifyHandler = browserify(sourceFile, { debug: true });
+  let browserifyHandler = browserify([ENVIRONMENT_FLAG_FILE, sourceFile], {
+    debug: true,
+  });
   let involvedFiles: string[] = [];
   browserifyHandler.on("file", (file) => {
     involvedFiles.push(file);
@@ -179,7 +191,8 @@ function embedIntoHtml(jsCode: string): string {
 }
 
 export async function buildChromeExtension(
-  rootDir: string
+  rootDir: string,
+  environment?: string
 ): Promise<{ bundledFiles: string[]; ignoredFiles: string[] }> {
   let manifestBuffer = await fs.promises.readFile(
     path.join(rootDir, CHROME_EXTENSION_MANIFEST_NAME)
@@ -203,7 +216,7 @@ export async function buildChromeExtension(
             isBundlingNeeded,
             code,
             promiseToWriteFileMtimes,
-          } = await bundleSourceModule(backgroundModule);
+          } = await bundleSourceModule(backgroundModule, environment);
           if (!isBundlingNeeded) {
             return;
           }
@@ -239,7 +252,7 @@ export async function buildChromeExtension(
               isBundlingNeeded,
               code,
               promiseToWriteFileMtimes,
-            } = await bundleSourceModule(contentScriptModule);
+            } = await bundleSourceModule(contentScriptModule, environment);
             if (!isBundlingNeeded) {
               return;
             }
@@ -274,7 +287,7 @@ export async function buildChromeExtension(
           isBundlingNeeded,
           code,
           promiseToWriteFileMtimes,
-        } = await bundleSourceModule(browserActionModule);
+        } = await bundleSourceModule(browserActionModule, environment);
         if (!isBundlingNeeded) {
           return;
         }
@@ -302,8 +315,14 @@ export async function buildChromeExtension(
   return { bundledFiles: bundledFiles, ignoredFiles: ignoredFiles };
 }
 
-export async function packChromeExtension(rootDir: string): Promise<void> {
-  let { bundledFiles, ignoredFiles } = await buildChromeExtension(rootDir);
+export async function packChromeExtension(
+  rootDir: string,
+  environment?: string
+): Promise<void> {
+  let { bundledFiles, ignoredFiles } = await buildChromeExtension(
+    rootDir,
+    environment
+  );
   ignoredFiles.push(...FILE_PATTERNS_IGNORED_FROM_CHROME_EXTENSION);
   let files = await findFilesRecursively(rootDir);
   let filesToPack = ignore().add(ignoredFiles).filter(files);

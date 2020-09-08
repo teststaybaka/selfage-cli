@@ -49,11 +49,16 @@ async function main(): Promise<void> {
       `Build files and bundle modules mapped by urls into HTML files ` +
         `according to the config in ${URL_TO_MODULES_CONFIG_FILE}.`
     )
+    .option(
+      "-env, --environment <environment>",
+      `Specify the runtime environment for the web page with string ` +
+        `representation of Environment enum in "selfage/environment.ts".`
+    )
     .action(
-      async (): Promise<void> => {
+      async (options): Promise<void> => {
         let success = build();
         if (success) {
-          await buildWeb(".");
+          await buildWeb(".", options.environment);
         }
       }
     );
@@ -65,11 +70,16 @@ async function main(): Promise<void> {
         ` in${CHROME_EXTENSION_MANIFEST_NAME}, while generating manifest.json` +
         ` pointed to the bundled files.`
     )
+    .option(
+      "-env, --environment <environment>",
+      `Specify the runtime environment for the web page with string ` +
+        `representation of Environment enum in "selfage/environment.ts".`
+    )
     .action(
-      async (): Promise<void> => {
+      async (options): Promise<void> => {
         let success = build();
         if (success) {
-          await buildChromeExtension(".");
+          await buildChromeExtension(".", options.environment);
         }
       }
     );
@@ -80,11 +90,16 @@ async function main(): Promise<void> {
       `Build files and bundle modules, followed by packing Chrome ` +
         `extension as ${CHROME_EXTENSION_PACKAGE_NAME}.`
     )
+    .option(
+      "-env, --environment <environment>",
+      `Specify the runtime environment for the web page with string ` +
+        `representation of Environment enum in "selfage/environment.ts".`
+    )
     .action(
-      async (): Promise<void> => {
+      async (options): Promise<void> => {
         let success = build();
         if (success) {
-          await packChromeExtension(".");
+          await packChromeExtension(".", options.environment);
         }
       }
     );
