@@ -15,7 +15,7 @@ import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
 import { spawnSync } from "child_process";
 import { Command } from "commander";
-import { URL_TO_MODULES_CONFIG_FILE } from "selfage/common";
+import { URL_TO_MODULES_CONFIG_FILE } from "selfage/constants";
 import "source-map-support/register";
 
 function forceFileExtensions(fileFromCommandLine: string, ext: string): string {

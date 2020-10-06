@@ -13,7 +13,7 @@ import {
   FILE_NOT_EXISTS_ERROR_CODE,
   GZIP_EXT,
   URL_TO_MODULES_CONFIG_FILE,
-} from "selfage/common";
+} from "selfage/constants";
 import { parseJsonString } from "selfage/named_type_util";
 import { STREAM_READER } from "selfage/stream_reader";
 import { URL_TO_MODULE_MAPPING } from "selfage/url_to_module";
