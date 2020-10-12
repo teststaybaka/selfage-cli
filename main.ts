@@ -94,7 +94,7 @@ async function main(): Promise<void> {
     });
   program
     .command("pack-chrome-extension <rootDirectory>")
-    .alias("packcext")
+    .alias("packce")
     .description(
       `Build files and bundle scripts based on manifested defined in ` +
         `<rootDirectory>/${CHROME_EXTENSION_MANIFEST_NAME}, followed by ` +
