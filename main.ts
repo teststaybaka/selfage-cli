@@ -7,9 +7,10 @@ import {
   CHROME_EXTENSION_PACKAGE_NAME,
   build,
   buildChromeExtension,
-  buildWeb,
+  buildWebPage,
   clean,
   packChromeExtension,
+  writeServerEnvironmentFlag,
 } from "./build";
 import { ImportsSorter } from "./imports_sorter";
 import { MessageGenerator } from "./message_generator";
@@ -36,81 +37,90 @@ function writeFile(filePath: string, content: string, dryRun: boolean): void {
 async function main(): Promise<void> {
   let program = new Command();
   program
-    .command("build")
-    .description("Build all files.")
-    .action(
-      async (): Promise<void> => {
-        build();
-      }
-    );
-  program
-    .command("buildweb")
+    .command("set-server-environment <rootDirectory> <environment>")
     .description(
-      `Build files and bundle modules mapped by urls into HTML files ` +
-        `according to the config in ${URL_TO_MODULES_CONFIG_FILE}.`
+      `Set the runtime environment for the backend server(s) with a string ` +
+        `representation of Environment enum in "selfage/environment.ts". ` +
+        `The server's main file should depend on ` +
+        `"selfage/be/environment_flag" to pick the proper services for each ` +
+        `environment. The server's main file should live under the specified ` +
+        `root directory.`
+    )
+    .action(async (rootDirectory, environment) => {
+      writeServerEnvironmentFlag(rootDirectory, environment);
+    });
+  program
+    .command("build-web-page <rootDirectory>")
+    .alias("buildwp")
+    .description(
+      `Build files and bundle web pages based on the url to entry file ` +
+        `mapping defined in <rootDirectory>/${URL_TO_MODULES_CONFIG_FILE}.`
     )
     .option(
       "-env, --environment <environment>",
-      `Specify the runtime environment for the web page with string ` +
-        `representation of Environment enum in "selfage/environment.ts".`
+      `Specify the runtime environment for the web page with a string ` +
+        `representation of Environment enum in "selfage/environment.ts". The ` +
+        `entry file for a web page should depend on ` +
+        `"selfage/fe/environment_flag" to pick the proper backend services ` +
+        `for each environment.`
     )
-    .action(
-      async (options): Promise<void> => {
-        let success = build();
-        if (success) {
-          await buildWeb(".", options.environment);
-        }
+    .action(async (options) => {
+      let success = build();
+      if (success) {
+        await buildWebPage(".", options.environment);
       }
-    );
+    });
   program
-    .command("buildchromeextension")
-    .alias("buildcext")
+    .command("build-chrome-extension <rootDirectory>")
+    .alias("buildce")
     .description(
-      `Build files and bundle modules needed by Chrome extension as specified` +
-        ` in${CHROME_EXTENSION_MANIFEST_NAME}, while generating manifest.json` +
-        ` pointed to the bundled files.`
+      `Build files and bundle scripts based on manifested defined in ` +
+        `<rootDirectory>/${CHROME_EXTENSION_MANIFEST_NAME}. One could load ` +
+        `<rootDirectory> as unpacked extension after building.`
     )
     .option(
       "-env, --environment <environment>",
-      `Specify the runtime environment for the web page with string ` +
-        `representation of Environment enum in "selfage/environment.ts".`
+      `Specify the runtime environment for the chrome extension with a ` +
+        `string representation of Environment enum in ` +
+        `"selfage/environment.ts". The entry file for a web page should ` +
+        `depend on "selfage/fe/environment_flag" to pick the proper backend ` +
+        `services for each environment.`
     )
-    .action(
-      async (options): Promise<void> => {
-        let success = build();
-        if (success) {
-          await buildChromeExtension(".", options.environment);
-        }
+    .action(async (rootDirectory, options) => {
+      let success = build();
+      if (success) {
+        await buildChromeExtension(rootDirectory, options.environment);
       }
-    );
+    });
   program
-    .command("packchromeextension")
+    .command("pack-chrome-extension <rootDirectory>")
     .alias("packcext")
     .description(
-      `Build files and bundle modules, followed by packing Chrome ` +
-        `extension as ${CHROME_EXTENSION_PACKAGE_NAME}.`
+      `Build files and bundle scripts based on manifested defined in ` +
+        `<rootDirectory>/${CHROME_EXTENSION_MANIFEST_NAME}, followed by ` +
+        `packing <rootDirectory> into ${CHROME_EXTENSION_PACKAGE_NAME} which ` +
+        `is ready to be uploaded to Chrome web store.`
     )
     .option(
       "-env, --environment <environment>",
-      `Specify the runtime environment for the web page with string ` +
-        `representation of Environment enum in "selfage/environment.ts".`
+      `Specify the runtime environment for the chrome extension with a ` +
+        `string representation of Environment enum in ` +
+        `"selfage/environment.ts". The entry file for a web page should ` +
+        `depend on "selfage/fe/environment_flag" to pick the proper backend ` +
+        `services for each environment.`
     )
-    .action(
-      async (options): Promise<void> => {
-        let success = build();
-        if (success) {
-          await packChromeExtension(".", options.environment);
-        }
+    .action(async (rootDirectory, options) => {
+      let success = build();
+      if (success) {
+        await packChromeExtension(rootDirectory, options.environment);
       }
-    );
+    });
   program
     .command("clean")
     .description("Delete all files generated from building and bundling.")
-    .action(
-      async (): Promise<void> => {
-        await clean(".");
-      }
-    );
+    .action(async () => {
+      await clean(".");
+    });
   program
     .command("run <file>")
     .description(
@@ -119,21 +129,19 @@ async function main(): Promise<void> {
         `be changed to a js file. Pass through arguments to the executable ` +
         `file after --.`
     )
-    .action(
-      async (file, options, extraArgs): Promise<void> => {
-        build();
-        let jsFile = forceFileExtensions(file, ".js");
-        let args: string[];
-        if (!extraArgs) {
-          args = [];
-        } else {
-          args = extraArgs;
-        }
-        spawnSync("node", [jsFile, ...args], {
-          stdio: "inherit",
-        });
+    .action(async (file, options, extraArgs) => {
+      build();
+      let jsFile = forceFileExtensions(file, ".js");
+      let args: string[];
+      if (!extraArgs) {
+        args = [];
+      } else {
+        args = extraArgs;
       }
-    );
+      spawnSync("node", [jsFile, ...args], {
+        stdio: "inherit",
+      });
+    });
   program
     .command("format <file>")
     .alias("fmt")
@@ -146,19 +154,15 @@ async function main(): Promise<void> {
       "--dry-run",
       "Print the formatted content instead of overwriting the file."
     )
-    .action(
-      async (file, options): Promise<void> => {
-        let tsFile = forceFileExtensions(file, ".ts");
-        let contentToBeFormatted = fs.readFileSync(tsFile).toString();
-        let contentImportsSorted = new ImportsSorter(
-          contentToBeFormatted
-        ).sort();
-        let contentFormatted = prettier.format(contentImportsSorted, {
-          parser: "typescript",
-        });
-        writeFile(tsFile, contentFormatted, options.dryRun);
-      }
-    );
+    .action(async (file, options) => {
+      let tsFile = forceFileExtensions(file, ".ts");
+      let contentToBeFormatted = fs.readFileSync(tsFile).toString();
+      let contentImportsSorted = new ImportsSorter(contentToBeFormatted).sort();
+      let contentFormatted = prettier.format(contentImportsSorted, {
+        parser: "typescript",
+      });
+      writeFile(tsFile, contentFormatted, options.dryRun);
+    });
   program
     .command("message <file>")
     .alias("msg")
@@ -175,24 +179,22 @@ async function main(): Promise<void> {
       "--dry-run",
       "Print the generated implementations instead of overwriting the file."
     )
-    .action(
-      async (file, options): Promise<void> => {
-        let tsFile = forceFileExtensions(file, ".ts");
-        let contentToBeProcessed = fs.readFileSync(tsFile).toString();
+    .action(async (file, options) => {
+      let tsFile = forceFileExtensions(file, ".ts");
+      let contentToBeProcessed = fs.readFileSync(tsFile).toString();
 
-        let packageDirectory = options.packageDirectory
-          ? options.packageDirectory
-          : "selfage";
-        let contentGenerated = new MessageGenerator(
-          contentToBeProcessed,
-          packageDirectory
-        ).generate();
-        let contentFormatted = prettier.format(contentGenerated, {
-          parser: "typescript",
-        });
-        writeFile(tsFile, contentFormatted, options.dryRun);
-      }
-    );
+      let packageDirectory = options.packageDirectory
+        ? options.packageDirectory
+        : "selfage";
+      let contentGenerated = new MessageGenerator(
+        contentToBeProcessed,
+        packageDirectory
+      ).generate();
+      let contentFormatted = prettier.format(contentGenerated, {
+        parser: "typescript",
+      });
+      writeFile(tsFile, contentFormatted, options.dryRun);
+    });
   await program.parseAsync();
 }
 

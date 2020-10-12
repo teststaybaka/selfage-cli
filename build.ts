@@ -10,6 +10,7 @@ import ignore from "ignore";
 import { FILE_MTIME_LIST, FileMtime, FileMtimeList } from "./file_mtime";
 import { spawnSync } from "child_process";
 import {
+  ENVIRONMENT_FLAG_VALUE_FILE,
   FILE_NOT_EXISTS_ERROR_CODE,
   GZIP_EXT,
   URL_TO_MODULES_CONFIG_FILE,
@@ -22,7 +23,6 @@ export let CHROME_EXTENSION_MANIFEST_NAME = "chrome_extension_manifest.json";
 export let CHROME_EXTENSION_PACKAGE_NAME = "chrome_extension.zip";
 
 let pipeline = util.promisify(stream.pipeline);
-let ENVIRONMENT_FLAG_FILE = "environment_flag.js";
 let CHROME_EXTENSION_BUILT_MANIFEST_NAME = "manifest.json";
 let FILE_MTIME_CACHE_EXT = ".filemtime";
 let NODE_MODULES_DIR = "node_modules";
@@ -49,7 +49,14 @@ export function build(): boolean {
   return res.status === 0;
 }
 
-export async function buildWeb(
+export async function writeServerEnvironmentFlag(
+  rootDir: string,
+  environment: string
+): Promise<void> {
+  await fs.promises.writeFile(ENVIRONMENT_FLAG_VALUE_FILE, `${environment}`);
+}
+
+export async function buildWebPage(
   rootDir: string,
   environment?: string
 ): Promise<void> {
@@ -106,13 +113,16 @@ async function bundleSourceModule(
   }
   let environmentValue = environment ? `"${environment}"` : `undefined`;
   await fs.promises.writeFile(
-    ENVIRONMENT_FLAG_FILE,
-    `let environment_flag = ${environmentValue};`
+    ENVIRONMENT_FLAG_VALUE_FILE,
+    `let ENVIRONMENT_FLAG = ${environmentValue};`
   );
   let sourceFile = sourceModule + ".js";
-  let browserifyHandler = browserify([ENVIRONMENT_FLAG_FILE, sourceFile], {
-    debug: true,
-  });
+  let browserifyHandler = browserify(
+    [ENVIRONMENT_FLAG_VALUE_FILE, sourceFile],
+    {
+      debug: true,
+    }
+  );
   let involvedFiles: string[] = [];
   browserifyHandler.on("file", (file) => {
     involvedFiles.push(file);

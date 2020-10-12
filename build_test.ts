@@ -1,7 +1,7 @@
 import fs = require("fs");
 import {
   buildChromeExtension,
-  buildWeb,
+  buildWebPage,
   clean,
   packChromeExtension,
 } from "./build";
@@ -46,7 +46,7 @@ class BuildWebForTheFirstTime implements TestCase {
     compileTypeScript("./test_data/build_web/main.ts");
 
     // Execute
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
 
     // Verify
     Expectation.expect(fs.existsSync("./test_data/build_web/main.html"));
@@ -63,11 +63,11 @@ class BuildWebSkipBundlingWithoutChanges implements TestCase {
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/build_web/main.ts");
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
     let mtime = fs.statSync("./test_data/build_web/main.html").mtimeMs;
 
     // Execute
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
 
     // Verify
     try {
@@ -87,7 +87,7 @@ class BuildWebAfterModifyingMainFile implements TestCase {
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/build_web/main.ts");
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
     let mtime = fs.statSync("./test_data/build_web/main.html").mtimeMs;
     let backupMain = fs.readFileSync("./test_data/build_web/main.ts");
     fs.copyFileSync(
@@ -97,7 +97,7 @@ class BuildWebAfterModifyingMainFile implements TestCase {
     compileTypeScript("./test_data/build_web/main.ts");
 
     // Execute
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
 
     // Verify
     try {
@@ -118,7 +118,7 @@ class BuildWebAfterModifyingOneDependency implements TestCase {
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/build_web/main.ts");
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
     let mtime = fs.statSync("./test_data/build_web/main.html").mtimeMs;
     let backupLibFoo = fs.readFileSync("./test_data/build_web/lib_foo.ts");
     fs.copyFileSync(
@@ -128,7 +128,7 @@ class BuildWebAfterModifyingOneDependency implements TestCase {
     compileTypeScript("./test_data/build_web/main.ts");
 
     // Execute
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
 
     // Verify
     try {
@@ -149,7 +149,7 @@ class BuildWebAfterRemovingOneDependency implements TestCase {
   public async execute() {
     // Prepare
     compileTypeScript("./test_data/build_web/main.ts");
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
     let mtime = fs.statSync("./test_data/build_web/main.html").mtimeMs;
     let backupMain = fs.readFileSync("./test_data/build_web/main.ts");
     let backupLibFoo = fs.readFileSync("./test_data/build_web/lib_foo.ts");
@@ -161,7 +161,7 @@ class BuildWebAfterRemovingOneDependency implements TestCase {
     compileTypeScript("./test_data/build_web/main.ts");
 
     // Execute
-    await buildWeb("./test_data/build_web");
+    await buildWebPage("./test_data/build_web");
 
     // Verify
     try {
