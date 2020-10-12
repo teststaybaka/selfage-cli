@@ -82,7 +82,7 @@ async function main(): Promise<void> {
       "-env, --environment <environment>",
       `Specify the runtime environment for the chrome extension with a ` +
         `string representation of Environment enum in ` +
-        `"selfage/environment.ts". The entry file for a web page should ` +
+        `"selfage/environment.ts". The entry file for each script should ` +
         `depend on "selfage/fe/environment_flag" to pick the proper backend ` +
         `services for each environment.`
     )
@@ -105,7 +105,7 @@ async function main(): Promise<void> {
       "-env, --environment <environment>",
       `Specify the runtime environment for the chrome extension with a ` +
         `string representation of Environment enum in ` +
-        `"selfage/environment.ts". The entry file for a web page should ` +
+        `"selfage/environment.ts". The entry file for each script should ` +
         `depend on "selfage/fe/environment_flag" to pick the proper backend ` +
         `services for each environment.`
     )
