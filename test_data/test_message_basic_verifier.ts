@@ -29,22 +29,22 @@ assert(BASIC_DATA.kind === NamedTypeKind.MESSAGE);
 assert(BASIC_DATA.messageFields.length === 6);
 assert(BASIC_DATA.messageFields[0].name === "numberField");
 assert(BASIC_DATA.messageFields[0].type === MessageFieldType.NUMBER);
-assert(!BASIC_DATA.messageFields[0].isArray);
+assert(BASIC_DATA.messageFields[0].arrayFactoryFn === undefined);
 assert(BASIC_DATA.messageFields[1].name === "stringField");
 assert(BASIC_DATA.messageFields[1].type === MessageFieldType.STRING);
-assert(!BASIC_DATA.messageFields[1].isArray);
+assert(BASIC_DATA.messageFields[1].arrayFactoryFn === undefined);
 assert(BASIC_DATA.messageFields[2].name === "booleanField");
 assert(BASIC_DATA.messageFields[2].type === MessageFieldType.BOOLEAN);
-assert(!BASIC_DATA.messageFields[2].isArray);
+assert(BASIC_DATA.messageFields[2].arrayFactoryFn === undefined);
 assert(BASIC_DATA.messageFields[3].name === "numberArrayField");
 assert(BASIC_DATA.messageFields[3].type === MessageFieldType.NUMBER);
-assert(BASIC_DATA.messageFields[3].isArray);
+assert(BASIC_DATA.messageFields[3].arrayFactoryFn !== undefined);
 assert(BASIC_DATA.messageFields[4].name === "stringArrayField");
 assert(BASIC_DATA.messageFields[4].type === MessageFieldType.STRING);
-assert(BASIC_DATA.messageFields[4].isArray);
+assert(BASIC_DATA.messageFields[4].arrayFactoryFn !== undefined);
 assert(BASIC_DATA.messageFields[5].name === "booleanArrayField");
 assert(BASIC_DATA.messageFields[5].type === MessageFieldType.BOOLEAN);
-assert(BASIC_DATA.messageFields[5].isArray);
+assert(BASIC_DATA.messageFields[5].arrayFactoryFn !== undefined);
 
 // All enums are present.
 let one = NoExportOneEnum.ONE;

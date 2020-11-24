@@ -8,34 +8,36 @@ import {
   Node as TsNode,
   NumericLiteral,
   PropertySignature,
-  ScriptTarget,
   StringLiteral,
   SyntaxKind,
   TypeNode,
   TypeReferenceNode,
-  createSourceFile,
+  createCompilerHost,
+  createProgram,
   forEachChild,
 } from "typescript";
 
 export class MessageGenerator {
   private static UPPER_CASES_REGEXP = /[A-Z]/;
 
+  private originalContent: string;
   private pathToNamedImports = new Map<string, Set<string>>();
   private namedImportsToPath = new Map<string, string>();
   private content = "";
 
   public constructor(
-    private originalContent: string,
+    private filename: string,
     private namedTypeDescriptorDir: string
   ) {}
 
   public generate(): string {
-    let sourceFile = createSourceFile(
-      "placeholder",
-      this.originalContent,
-      ScriptTarget.ES5,
-      true
+    let program = createProgram(
+      [this.filename],
+      {},
+      createCompilerHost({}, true)
     );
+    let sourceFile = program.getSourceFile(this.filename);
+    this.originalContent = sourceFile.text;
     forEachChild(sourceFile, (node) => this.visitTopDeclarations(node));
     this.prependImports();
     return this.content;
@@ -45,11 +47,9 @@ export class MessageGenerator {
     if (node.kind === SyntaxKind.ImportDeclaration) {
       this.parseImports(node as ImportDeclaration);
     }
-
     if (node.kind === SyntaxKind.InterfaceDeclaration) {
       this.generateMessageDescriptor(node as InterfaceDeclaration);
     }
-
     if (node.kind === SyntaxKind.EnumDeclaration) {
       this.generateEnumDescriptor(node as EnumDeclaration);
     }
@@ -93,6 +93,9 @@ export interface ${interfaceName}`;
 export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
   name: '${interfaceName}',
   kind: NamedTypeKind.MESSAGE,
+  factoryFn: () => {
+    return new Object();
+  },
   messageFields: [`;
     if (interfaceNode.heritageClauses) {
       for (let baseType of interfaceNode.heritageClauses[0].types) {
@@ -139,7 +142,9 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
       }
       if (isArray) {
         this.content += `
-      isArray: true,`;
+      arrayFactoryFn: () => {
+        return new Array<any>();
+      },`;
       }
       this.content += `
     },`;

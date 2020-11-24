@@ -181,13 +181,11 @@ async function main(): Promise<void> {
     )
     .action(async (file, options) => {
       let tsFile = forceFileExtensions(file, ".ts");
-      let contentToBeProcessed = fs.readFileSync(tsFile).toString();
-
       let packageDirectory = options.packageDirectory
         ? options.packageDirectory
         : "selfage";
       let contentGenerated = new MessageGenerator(
-        contentToBeProcessed,
+        tsFile,
         packageDirectory
       ).generate();
       let contentFormatted = prettier.format(contentGenerated, {
