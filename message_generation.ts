@@ -14,7 +14,6 @@ import {
   TypeReferenceNode,
   createCompilerHost,
   createProgram,
-  forEachChild,
 } from "typescript";
 
 let UPPER_CASES_REGEXP = /[A-Z]/;
@@ -30,9 +29,19 @@ export function generateMessage(
 
   let contentList = new Array<string>();
   let importer = new Importer(selfageDir);
-  forEachChild(sourceFile, (node) => {
-    visitTopDeclarations(node, contentList, importer);
-  });
+  for (let node of sourceFile.statements) {
+    if (node.kind === SyntaxKind.ImportDeclaration) {
+      parseImports(node as ImportDeclaration, importer);
+    } else if (node.kind === SyntaxKind.InterfaceDeclaration) {
+      generateMessageDescriptor(
+        node as InterfaceDeclaration,
+        contentList,
+        importer
+      );
+    } else if (node.kind === SyntaxKind.EnumDeclaration) {
+      generateEnumDescriptor(node as EnumDeclaration, contentList, importer);
+    }
+  }
   contentList = [...importer.toStringList(), ...contentList];
   return {
     filename: modulePath.replace(MSG_FILE_SUFFIX, "") + ".ts",
@@ -76,11 +85,10 @@ class Importer {
     path: string,
     ...namedImports: Array<string>
   ): void {
-    path = path.replace(MSG_FILE_SUFFIX, "");
     Importer.addNamedImports(
       this.pathToNamedImports,
       this.namedImportToPaths,
-      path,
+      path.replace(MSG_FILE_SUFFIX, ""),
       ...namedImports
     );
   }
@@ -297,22 +305,4 @@ function toDescriptorName(typeName: string): string {
     }
   }
   return upperCaseSnakedName;
-}
-
-function visitTopDeclarations(
-  node: TsNode,
-  contentList: Array<string>,
-  importer: Importer
-): void {
-  if (node.kind === SyntaxKind.ImportDeclaration) {
-    parseImports(node as ImportDeclaration, importer);
-  } else if (node.kind === SyntaxKind.InterfaceDeclaration) {
-    generateMessageDescriptor(
-      node as InterfaceDeclaration,
-      contentList,
-      importer
-    );
-  } else if (node.kind === SyntaxKind.EnumDeclaration) {
-    generateEnumDescriptor(node as EnumDeclaration, contentList, importer);
-  }
 }
