@@ -1,4 +1,9 @@
 /node_modules/
+test_data/test_message_basic.ts
+test_data/test_message_extended.ts
+test_data/test_message_field_extended.ts
+test_data/test_message_imported.ts
+test_data/test_message_nested.ts
 tsconfig.tsbuildinfo
 *.d.ts
 *.js
