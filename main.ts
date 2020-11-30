@@ -12,7 +12,7 @@ import {
   packChromeExtension,
   writeServerEnvironmentFlag,
 } from "./build";
-import { ImportsSorter } from "./imports_sorter";
+import { sortImports } from "./imports_sorting";
 import { generateMessage } from "./message_generation";
 import { spawnSync } from "child_process";
 import { Command } from "commander";
@@ -157,7 +157,7 @@ async function main(): Promise<void> {
     .action(async (file, options) => {
       let tsFile = stripFileExtension(file) + ".ts";
       let contentToBeFormatted = fs.readFileSync(tsFile).toString();
-      let contentImportsSorted = new ImportsSorter(contentToBeFormatted).sort();
+      let contentImportsSorted = sortImports(contentToBeFormatted);
       let contentFormatted = prettier.format(contentImportsSorted, {
         parser: "typescript",
       });
