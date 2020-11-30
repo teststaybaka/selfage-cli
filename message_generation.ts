@@ -1,3 +1,4 @@
+import { newInternalError } from "selfage/errors";
 import {
   ArrayTypeNode,
   EnumDeclaration,
@@ -23,6 +24,12 @@ export function generateMessage(
   modulePath: string,
   selfageDir: string
 ): { filename: string; content: string } {
+  if (modulePath.search(MSG_FILE_SUFFIX) === -1) {
+    throw newInternalError(
+      `File name must end with "_msg", it's ${modulePath}.`
+    );
+  }
+
   let filename = modulePath + ".ts";
   let program = createProgram([filename], {}, createCompilerHost({}, true));
   let sourceFile = program.getSourceFile(filename);

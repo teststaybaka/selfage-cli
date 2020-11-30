@@ -1,7 +1,25 @@
 import { generateMessage } from "./message_generation";
 import { spawnSync } from "child_process";
 import { writeFileSync } from "fs";
-import { Expectation, TestCase, TestSet } from "selfage/test_base";
+import { newInternalError } from "selfage/errors";
+import {
+  Expectation,
+  TestCase,
+  TestSet,
+  assertError,
+  assertThrow,
+} from "selfage/test_base";
+
+class GenerateMessageErrorWithoutSuffix implements TestCase {
+  public name = "GenerateMessageErrorWithoutSuffix";
+
+  public async execute() {
+    let error = assertThrow(() =>
+      generateMessage("./test_data/test_message_basic", "selfage")
+    );
+    assertError(error, newInternalError("must end with"));
+  }
+}
 
 function parameterizedTest(
   testTargetModule: string,
@@ -109,7 +127,8 @@ class GenerateImportedMessages implements TestCase {
 }
 
 /**
- * Covers parsing messages extended imported messages, and messages containing nested messages which are imported.
+ * Covers parsing messages extended imported messages, and messages containing
+ * nested messages which are imported.
  */
 class GenerateFieldExtendedMessages implements TestCase {
   public name = "GenerateFieldExtendedMessages";
@@ -125,6 +144,7 @@ class GenerateFieldExtendedMessages implements TestCase {
 export let MESSAGE_GENERATION_TEST: TestSet = {
   name: "MessageGenerationTest",
   cases: [
+    new GenerateMessageErrorWithoutSuffix(),
     new GenerateBasicMessages(),
     new GenerateNestedMessages(),
     new GenerateExtendedMessages(),
