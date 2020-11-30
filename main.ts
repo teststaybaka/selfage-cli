@@ -13,16 +13,16 @@ import {
   writeServerEnvironmentFlag,
 } from "./build";
 import { ImportsSorter } from "./imports_sorter";
-import { MessageGenerator } from "./message_generator";
+import { generateMessage } from "./message_generation";
 import { spawnSync } from "child_process";
 import { Command } from "commander";
 import { URL_TO_MODULES_CONFIG_FILE } from "selfage/constants";
 import "source-map-support/register";
 
-function forceFileExtensions(fileFromCommandLine: string, ext: string): string {
+function stripFileExtension(fileFromCommandLine: string): string {
   let pathObj = path.parse(fileFromCommandLine);
   pathObj.base = undefined;
-  pathObj.ext = ext;
+  pathObj.ext = undefined;
   return path.format(pathObj);
 }
 
@@ -131,7 +131,7 @@ async function main(): Promise<void> {
     )
     .action(async (file, options, extraArgs) => {
       build();
-      let jsFile = forceFileExtensions(file, ".js");
+      let jsFile = stripFileExtension(file) + ".js";
       let args: string[];
       if (!extraArgs) {
         args = [];
@@ -155,7 +155,7 @@ async function main(): Promise<void> {
       "Print the formatted content instead of overwriting the file."
     )
     .action(async (file, options) => {
-      let tsFile = forceFileExtensions(file, ".ts");
+      let tsFile = stripFileExtension(file) + ".ts";
       let contentToBeFormatted = fs.readFileSync(tsFile).toString();
       let contentImportsSorted = new ImportsSorter(contentToBeFormatted).sort();
       let contentFormatted = prettier.format(contentImportsSorted, {
@@ -180,18 +180,18 @@ async function main(): Promise<void> {
       "Print the generated implementations instead of overwriting the file."
     )
     .action(async (file, options) => {
-      let tsFile = forceFileExtensions(file, ".ts");
+      let modulePath = stripFileExtension(file);
       let packageDirectory = options.packageDirectory
         ? options.packageDirectory
         : "selfage";
-      let contentGenerated = new MessageGenerator(
-        tsFile,
+      let { filename: outputFile, content } = generateMessage(
+        modulePath,
         packageDirectory
-      ).generate();
-      let contentFormatted = prettier.format(contentGenerated, {
+      );
+      let contentFormatted = prettier.format(content, {
         parser: "typescript",
       });
-      writeFile(tsFile, contentFormatted, options.dryRun);
+      writeFile(outputFile, contentFormatted, options.dryRun);
     });
   await program.parseAsync();
 }
