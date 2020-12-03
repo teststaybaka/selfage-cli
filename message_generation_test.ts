@@ -21,7 +21,7 @@ class GenerateMessageErrorWithoutSuffix implements TestCase {
   }
 }
 
-function parameterizedTest(
+function verifyGeneratedMessage(
   testTargetModule: string,
   modulesImported: string[] = [],
   textsToMatch: string[] = [],
@@ -50,10 +50,17 @@ function parameterizedTest(
   // Use `tsc` to check if generated messages contain any syntax or type error
   // and can be properly imported in the corresponding prober module. Execute
   // the verifier to verify if generated functions work properly.
-  let verifierModule = testTargetModule.replace(/_msg$/, "");
+  let verifierModule = testTargetModule.replace(/_msg$/, "_verifier");
   let compilingRes = spawnSync(
     "npx",
-    ["tsc", "--noImplicitAny", "--sourceMap", verifierModule + ".ts"],
+    [
+      "tsc",
+      "--noImplicitAny",
+      "--sourceMap",
+      "-t",
+      "es5",
+      verifierModule + ".ts",
+    ],
     { stdio: "inherit" }
   );
   if (compilingRes.status !== 0) {
@@ -75,7 +82,7 @@ class GenerateBasicMessages implements TestCase {
   public name = "GenerateBasicMessages";
 
   public async execute() {
-    parameterizedTest(
+    verifyGeneratedMessage(
       "./test_data/test_message_basic_msg",
       [],
       [
@@ -97,7 +104,7 @@ class GenerateNestedMessages implements TestCase {
   public name = "GenerateNestedMessages";
 
   public async execute() {
-    parameterizedTest("./test_data/test_message_nested_msg");
+    verifyGeneratedMessage("./test_data/test_message_nested_msg");
   }
 }
 
@@ -108,7 +115,7 @@ class GenerateExtendedMessages implements TestCase {
   public name = "GenerateExtendedMessages";
 
   public async execute() {
-    parameterizedTest("./test_data/test_message_extended_msg");
+    verifyGeneratedMessage("./test_data/test_message_extended_msg");
   }
 }
 
@@ -120,7 +127,7 @@ class GenerateImportedMessages implements TestCase {
   public name = "GenerateImportedMessages";
 
   public async execute() {
-    parameterizedTest("./test_data/test_message_imported_msg", [
+    verifyGeneratedMessage("./test_data/test_message_imported_msg", [
       "./test_data/test_message_basic_msg",
     ]);
   }
@@ -134,9 +141,48 @@ class GenerateFieldExtendedMessages implements TestCase {
   public name = "GenerateFieldExtendedMessages";
 
   public async execute() {
-    parameterizedTest("./test_data/test_message_field_extended_msg", [
+    verifyGeneratedMessage("./test_data/test_message_field_extended_msg", [
       "./test_data/test_message_basic_msg",
       "./test_data/test_message_imported_msg",
+    ]);
+  }
+}
+
+/**
+ * Covers parsing observable messages with basic types and preserving comments.
+ */
+class GenerateBasicObservables implements TestCase {
+  public name = "GenerateBasicObservables";
+
+  public async execute() {
+    verifyGeneratedMessage(
+      "./test_data/test_observable_basic_msg",
+      [],
+      ["// Comment1", "// Comment2", "// Comment3", "* Comment4", "* Comment5"]
+    );
+  }
+}
+
+/**
+ * Covers parsing observable messages with nested observable message.
+ **/
+class GenerateNestedObservables implements TestCase {
+  public name = "GenerateNestedObservables";
+
+  public async execute() {
+    verifyGeneratedMessage("./test_data/test_observable_nested_msg");
+  }
+}
+
+/**
+ * Covers parsing observable messages with imported observable message.
+ **/
+class GenerateImportedObservables implements TestCase {
+  public name = "GenerateImportedObservables";
+
+  public async execute() {
+    verifyGeneratedMessage("./test_data/test_observable_imported_msg", [
+      "./test_data/test_observable_basic_msg",
     ]);
   }
 }
@@ -150,5 +196,8 @@ export let MESSAGE_GENERATION_TEST: TestSet = {
     new GenerateExtendedMessages(),
     new GenerateImportedMessages(),
     new GenerateFieldExtendedMessages(),
+    new GenerateBasicObservables(),
+    new GenerateNestedObservables(),
+    new GenerateImportedObservables(),
   ],
 };

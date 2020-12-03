@@ -11,6 +11,7 @@ import {
   PropertySignature,
   StringLiteral,
   SyntaxKind,
+  TypeChecker,
   TypeNode,
   TypeReferenceNode,
   createCompilerHost,
@@ -19,6 +20,7 @@ import {
 
 let UPPER_CASES_REGEXP = /[A-Z]/;
 let MSG_FILE_SUFFIX = /_msg$/;
+let OBSERVABLE_ANNOTATION = /^\s*(\/\/|\*+)\s*@Observable\s*$/m;
 
 export function generateMessage(
   modulePath: string,
@@ -32,6 +34,7 @@ export function generateMessage(
 
   let filename = modulePath + ".ts";
   let program = createProgram([filename], {}, createCompilerHost({}, true));
+  let checker = program.getTypeChecker();
   let sourceFile = program.getSourceFile(filename);
 
   let contentList = new Array<string>();
@@ -40,11 +43,21 @@ export function generateMessage(
     if (node.kind === SyntaxKind.ImportDeclaration) {
       parseImports(node as ImportDeclaration, importer);
     } else if (node.kind === SyntaxKind.InterfaceDeclaration) {
-      generateMessageDescriptor(
-        node as InterfaceDeclaration,
-        contentList,
-        importer
-      );
+      let comments = getLeadingComments(node);
+      if (!OBSERVABLE_ANNOTATION.test(comments)) {
+        generateMessageDescriptor(
+          node as InterfaceDeclaration,
+          contentList,
+          importer
+        );
+      } else {
+        generateObservableDescriptor(
+          node as InterfaceDeclaration,
+          checker,
+          contentList,
+          importer
+        );
+      }
     } else if (node.kind === SyntaxKind.EnumDeclaration) {
       generateEnumDescriptor(node as EnumDeclaration, contentList, importer);
     }
@@ -62,7 +75,7 @@ class Importer {
 
   public constructor(private selfageDir: string) {}
 
-  public addDescriptorIfTypeImported(
+  public importDescriptorIfTypeImported(
     typeName: string,
     descriptorName: string
   ): void {
@@ -77,13 +90,29 @@ class Importer {
     }
   }
 
-  public addNamedImportsFromNamedTypeDescriptor(
-    ...namedImports: Array<string>
-  ): void {
+  public importsFromNamedTypeDescriptor(...namedImports: Array<string>): void {
     Importer.addNamedImports(
       this.pathToNamedImports,
       this.namedImportToPaths,
       this.selfageDir + "/named_type_descriptor",
+      ...namedImports
+    );
+  }
+
+  public importFromObservable(...namedImports: Array<string>) {
+    Importer.addNamedImports(
+      this.pathToNamedImports,
+      this.namedImportToPaths,
+      this.selfageDir + "/observable",
+      ...namedImports
+    );
+  }
+
+  public importFromObservableArray(...namedImports: Array<string>): void {
+    Importer.addNamedImports(
+      this.pathToNamedImports,
+      this.namedImportToPaths,
+      this.selfageDir + "/observable_array",
       ...namedImports
     );
   }
@@ -128,6 +157,60 @@ class Importer {
   }
 }
 
+function capitalize(name: string): string {
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function checkForArrayType(
+  typeNode: TypeNode
+): { typeNode: TypeNode; isArray: boolean } {
+  if (typeNode.kind !== SyntaxKind.ArrayType) {
+    return {
+      typeNode: typeNode,
+      isArray: false,
+    };
+  } else {
+    return {
+      typeNode: (typeNode as ArrayTypeNode).elementType,
+      isArray: true,
+    };
+  }
+}
+
+function checkForBasicOrNamedType(
+  fieldTypeNode: TypeNode
+): { basicType: string; namedType: string } {
+  let basicType: string;
+  if (
+    fieldTypeNode.kind === SyntaxKind.StringKeyword ||
+    fieldTypeNode.kind === SyntaxKind.BooleanKeyword ||
+    fieldTypeNode.kind === SyntaxKind.NumberKeyword
+  ) {
+    basicType = fieldTypeNode.getText();
+  }
+  let namedType: string;
+  if (fieldTypeNode.kind === SyntaxKind.TypeReference) {
+    namedType = ((fieldTypeNode as TypeReferenceNode).typeName as Identifier)
+      .text;
+  }
+  return {
+    basicType: basicType,
+    namedType: namedType,
+  };
+}
+
+function isInterfaceType(checker: TypeChecker, typeNode: TypeNode): boolean {
+  if (
+    typeNode.kind === SyntaxKind.StringKeyword ||
+    typeNode.kind === SyntaxKind.BooleanKeyword ||
+    typeNode.kind === SyntaxKind.NumberKeyword
+  ) {
+    return false;
+  }
+  let type = checker.getTypeFromTypeNode(typeNode);
+  return type.symbol.declarations[0].kind === SyntaxKind.InterfaceDeclaration;
+}
+
 function generateEnumDescriptor(
   enumNode: EnumDeclaration,
   contentList: Array<string>,
@@ -146,7 +229,7 @@ export enum ${enumName} {`);
 }
 `);
 
-  importer.addNamedImportsFromNamedTypeDescriptor(
+  importer.importsFromNamedTypeDescriptor(
     "NamedTypeDescriptor",
     "NamedTypeKind"
   );
@@ -184,7 +267,13 @@ export interface ${interfaceName}`);
   for (let member of interfaceNode.members) {
     let field = member as PropertySignature;
     let fieldName = (field.name as Identifier).text;
-    let fieldType = field.type.getText();
+    let { typeNode: fieldTypeNode, isArray } = checkForArrayType(field.type);
+    let fieldType: string;
+    if (isArray) {
+      fieldType = `Array<${fieldTypeNode.getText()}>`;
+    } else {
+      fieldType = fieldTypeNode.getText();
+    }
     contentList.push(`${getLeadingComments(member)}
   ${fieldName}?: ${fieldType},`);
   }
@@ -192,7 +281,7 @@ export interface ${interfaceName}`);
 }
 `);
 
-  importer.addNamedImportsFromNamedTypeDescriptor(
+  importer.importsFromNamedTypeDescriptor(
     "NamedTypeDescriptor",
     "NamedTypeKind"
   );
@@ -209,35 +298,27 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
     for (let baseType of interfaceNode.heritageClauses[0].types) {
       let baseTypeName = (baseType.expression as Identifier).text;
       let descriptorName = toDescriptorName(baseTypeName);
-      importer.addDescriptorIfTypeImported(baseTypeName, descriptorName);
+      importer.importDescriptorIfTypeImported(baseTypeName, descriptorName);
       contentList.push(`
     ...${descriptorName}.messageFields,`);
     }
   }
   for (let member of interfaceNode.members) {
-    importer.addNamedImportsFromNamedTypeDescriptor("MessageFieldType");
+    importer.importsFromNamedTypeDescriptor("MessageFieldType");
     let field = member as PropertySignature;
     let fieldName = (field.name as Identifier).text;
     contentList.push(`
     {
       name: '${fieldName}',`);
 
-    let fieldTypeNode: TypeNode;
-    let isArray: boolean;
-    if (field.type.kind !== SyntaxKind.ArrayType) {
-      fieldTypeNode = field.type;
-      isArray = false;
-    } else {
-      fieldTypeNode = (field.type as ArrayTypeNode).elementType;
-      isArray = true;
-    }
-    let { basicType, namedType } = getFieldTypeText(fieldTypeNode);
+    let { typeNode: fieldTypeNode, isArray } = checkForArrayType(field.type);
+    let { basicType, namedType } = checkForBasicOrNamedType(fieldTypeNode);
     if (basicType) {
       contentList.push(`
       type: MessageFieldType.${basicType.toUpperCase()},`);
     } else {
       let namedTypeDescriptor = toDescriptorName(namedType);
-      importer.addDescriptorIfTypeImported(namedType, namedTypeDescriptor);
+      importer.importDescriptorIfTypeImported(namedType, namedTypeDescriptor);
       contentList.push(`
       type: MessageFieldType.NAMED_TYPE,
       namedTypeDescriptor: ${namedTypeDescriptor},`);
@@ -257,26 +338,149 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
 `);
 }
 
-function getFieldTypeText(
-  fieldTypeNode: TypeNode
-): { basicType: string; namedType: string } {
-  let basicType = "";
-  if (
-    fieldTypeNode.kind === SyntaxKind.StringKeyword ||
-    fieldTypeNode.kind === SyntaxKind.BooleanKeyword ||
-    fieldTypeNode.kind === SyntaxKind.NumberKeyword
-  ) {
-    basicType = fieldTypeNode.getText();
+function generateObservableDescriptor(
+  interfaceNode: InterfaceDeclaration,
+  checker: TypeChecker,
+  contentList: Array<string>,
+  importer: Importer
+): void {
+  let interfaceName = interfaceNode.name.text;
+  contentList.push(`${getLeadingComments(interfaceNode)}
+export class ${interfaceName}`);
+  if (interfaceNode.heritageClauses) {
+    contentList.push(" " + interfaceNode.heritageClauses[0].getText());
   }
-  let namedType = "";
-  if (fieldTypeNode.kind === SyntaxKind.TypeReference) {
-    namedType = ((fieldTypeNode as TypeReferenceNode).typeName as Identifier)
-      .text;
+  importer.importFromObservable("Observable");
+  contentList.push(` implements Observable {
+  public onChange: () => void;`);
+  for (let member of interfaceNode.members) {
+    let field = member as PropertySignature;
+    let fieldName = (field.name as Identifier).text;
+    let { typeNode: fieldTypeNode, isArray } = checkForArrayType(field.type);
+    let isInterface = isInterfaceType(checker, fieldTypeNode);
+    let fieldType: string;
+    if (isArray) {
+      if (isInterface) {
+        importer.importFromObservableArray("ObservableNestedArray");
+        fieldType = `ObservableNestedArray<${fieldTypeNode.getText()}>`;
+      } else {
+        importer.importFromObservableArray("ObservableArray");
+        fieldType = `ObservableArray<${fieldTypeNode.getText()}>`;
+      }
+    } else {
+      fieldType = fieldTypeNode.getText();
+    }
+    contentList.push(`
+  ${getLeadingComments(member)}
+  public on${capitalize(
+    fieldName
+  )}Change: (newValue: ${fieldType}, oldValue: ${fieldType}) => void;
+  private ${fieldName}_?: ${fieldType};
+  get ${fieldName}(): ${fieldType} {
+    return this.${fieldName}_;
   }
-  return {
-    basicType: basicType,
-    namedType: namedType,
-  };
+  set ${fieldName}(value: ${fieldType}) {
+    let oldValue = this.${fieldName}_;
+    this.${fieldName}_ = value;`);
+    if (isArray || isInterface) {
+      contentList.push(`
+    if (oldValue !== undefined) {
+      oldValue.onChange = undefined;
+    }
+    this.${fieldName}_.onChange = () => {
+      if (this.onChange) {
+        this.onChange();
+      }
+    };`);
+    }
+    contentList.push(`
+    if (this.on${capitalize(fieldName)}Change) {
+      this.on${capitalize(fieldName)}Change(this.${fieldName}_, oldValue);
+    }
+    if (this.onChange) {
+      this.onChange();
+    }
+  }`);
+  }
+  contentList.push(`
+
+  public emitInitialEvents(): void {`);
+  for (let member of interfaceNode.members) {
+    let field = member as PropertySignature;
+    let fieldName = (field.name as Identifier).text;
+    contentList.push(`
+    if (this.on${capitalize(fieldName)}Change) {
+      this.on${capitalize(fieldName)}Change(this.${fieldName}_, undefined);
+    }`);
+  }
+  contentList.push(`
+  }
+}
+`);
+
+  importer.importsFromNamedTypeDescriptor(
+    "NamedTypeDescriptor",
+    "NamedTypeKind"
+  );
+  let descriptorName = toDescriptorName(interfaceName);
+  contentList.push(`
+export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
+  name: '${interfaceName}',
+  kind: NamedTypeKind.MESSAGE,
+  factoryFn: () => {
+    return new ${interfaceName}();
+  },
+  messageFields: [`);
+  if (interfaceNode.heritageClauses) {
+    for (let baseType of interfaceNode.heritageClauses[0].types) {
+      let baseTypeName = (baseType.expression as Identifier).text;
+      let descriptorName = toDescriptorName(baseTypeName);
+      importer.importDescriptorIfTypeImported(baseTypeName, descriptorName);
+      contentList.push(`
+    ...${descriptorName}.messageFields,`);
+    }
+  }
+  for (let member of interfaceNode.members) {
+    importer.importsFromNamedTypeDescriptor("MessageFieldType");
+    let field = member as PropertySignature;
+    let fieldName = (field.name as Identifier).text;
+    contentList.push(`
+    {
+      name: '${fieldName}',`);
+
+    let { typeNode: fieldTypeNode, isArray } = checkForArrayType(field.type);
+    let { basicType, namedType } = checkForBasicOrNamedType(fieldTypeNode);
+    if (basicType) {
+      contentList.push(`
+      type: MessageFieldType.${basicType.toUpperCase()},`);
+    } else {
+      let namedTypeDescriptor = toDescriptorName(namedType);
+      importer.importDescriptorIfTypeImported(namedType, namedTypeDescriptor);
+      contentList.push(`
+      type: MessageFieldType.NAMED_TYPE,
+      namedTypeDescriptor: ${namedTypeDescriptor},`);
+    }
+    if (isArray) {
+      let isInterface = isInterfaceType(checker, fieldTypeNode);
+      if (isInterface) {
+        contentList.push(`
+      arrayFactoryFn: () => {
+        return new ObservableNestedArray<any>();
+      },`);
+      } else {
+        contentList.push(`
+      arrayFactoryFn: () => {
+        return new ObservableArray<any>();
+      },`);
+      }
+    }
+    contentList.push(`
+    },`);
+  }
+  contentList.push(`
+  ]
+};
+`);
 }
 
 function getLeadingComments(node: TsNode): string {

@@ -4,6 +4,9 @@ test_data/test_message_extended.ts
 test_data/test_message_field_extended.ts
 test_data/test_message_imported.ts
 test_data/test_message_nested.ts
+test_data/test_observable_basic.ts
+test_data/test_observable_nested.ts
+test_data/test_observable_imported.ts
 tsconfig.tsbuildinfo
 *.d.ts
 *.js
