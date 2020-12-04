@@ -1,4 +1,4 @@
-interface BasicData {
+export interface BasicData {
   numberField: number;
   stringField: string;
   booleanField: boolean;

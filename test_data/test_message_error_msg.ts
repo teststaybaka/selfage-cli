@@ -1,0 +1,3 @@
+interface BasicData {
+  data: Data
+}

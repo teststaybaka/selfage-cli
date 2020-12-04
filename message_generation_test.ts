@@ -21,6 +21,17 @@ class GenerateMessageErrorWithoutSuffix implements TestCase {
   }
 }
 
+class GenerateMessageCompilationError implements TestCase {
+  public name = "GenerateMessageCompilationError";
+
+  public async execute() {
+    let error = assertThrow(() =>
+      generateMessage("./test_data/test_message_error_msg", "selfage")
+    );
+    assertError(error, newInternalError("Failed to compile"));
+  }
+}
+
 function verifyGeneratedMessage(
   testTargetModule: string,
   modulesImported: string[] = [],
@@ -191,6 +202,7 @@ export let MESSAGE_GENERATION_TEST: TestSet = {
   name: "MessageGenerationTest",
   cases: [
     new GenerateMessageErrorWithoutSuffix(),
+    new GenerateMessageCompilationError(),
     new GenerateBasicMessages(),
     new GenerateNestedMessages(),
     new GenerateExtendedMessages(),

@@ -1,10 +1,10 @@
 import { BasicData, Color } from "./test_message_basic_msg";
 
-interface ExtendedData extends BasicData {
+export interface ExtendedData extends BasicData {
   extendedField: string;
 }
 
-interface NestedData {
+export interface NestedData {
   basicData: BasicData;
   color: Color;
 }

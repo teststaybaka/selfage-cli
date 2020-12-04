@@ -16,6 +16,8 @@ import {
   TypeReferenceNode,
   createCompilerHost,
   createProgram,
+  flattenDiagnosticMessageText,
+  getPreEmitDiagnostics,
 } from "typescript";
 
 let UPPER_CASES_REGEXP = /[A-Z]/;
@@ -34,6 +36,14 @@ export function generateMessage(
 
   let filename = modulePath + ".ts";
   let program = createProgram([filename], {}, createCompilerHost({}, true));
+  let diagnostics = getPreEmitDiagnostics(program);
+  if (diagnostics.length > 0) {
+    for (let diagnostic of diagnostics) {
+      console.error(flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
+    }
+    throw newInternalError(`Failed to compile ${filename}.`);
+  }
+
   let checker = program.getTypeChecker();
   let sourceFile = program.getSourceFile(filename);
 
