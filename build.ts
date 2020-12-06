@@ -15,7 +15,7 @@ import {
   GZIP_EXT,
   URL_TO_MODULES_CONFIG_FILE,
 } from "selfage/constants";
-import { parseJsonString } from "selfage/named_type_util";
+import { parseMessage } from "selfage/message_util";
 import { STREAM_READER } from "selfage/stream_reader";
 import { URL_TO_MODULE_MAPPING } from "selfage/url_to_module";
 
@@ -63,8 +63,8 @@ export async function buildWebPage(
   let urlToModulesBuffer = await fs.promises.readFile(
     path.join(rootDir, URL_TO_MODULES_CONFIG_FILE)
   );
-  let urlToModuleMapping = parseJsonString(
-    urlToModulesBuffer.toString(),
+  let urlToModuleMapping = parseMessage(
+    JSON.parse(urlToModulesBuffer.toString()),
     URL_TO_MODULE_MAPPING
   );
   let promisesToBundle = urlToModuleMapping.urlToModules.map(
@@ -154,8 +154,8 @@ async function needsBundle(fileMtimesCacheFile: string): Promise<boolean> {
     }
   }
 
-  let fileMtimeList = parseJsonString(
-    fileMtimesBuffer.toString(),
+  let fileMtimeList = parseMessage(
+    JSON.parse(fileMtimesBuffer.toString()),
     FILE_MTIME_LIST
   );
   let promisesToCheck = fileMtimeList.fileMtimes.map(
