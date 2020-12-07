@@ -13,7 +13,6 @@ import {
   SyntaxKind,
   TypeChecker,
   TypeNode,
-  TypeReferenceNode,
   createCompilerHost,
   createProgram,
   flattenDiagnosticMessageText,
@@ -57,6 +56,7 @@ export function generateMessage(
       if (!OBSERVABLE_ANNOTATION.test(comments)) {
         generateMessageDescriptor(
           node as InterfaceDeclaration,
+          checker,
           contentList,
           importer
         );
@@ -100,11 +100,11 @@ class Importer {
     }
   }
 
-  public importsFromNamedTypeDescriptor(...namedImports: Array<string>): void {
+  public importsFromMessageDescriptor(...namedImports: Array<string>): void {
     Importer.addNamedImports(
       this.pathToNamedImports,
       this.namedImportToPaths,
-      this.selfageDir + "/named_type_descriptor",
+      this.selfageDir + "/message_descriptor",
       ...namedImports
     );
   }
@@ -171,7 +171,7 @@ function capitalize(name: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-function checkForArrayType(
+function flattenArrayType(
   typeNode: TypeNode
 ): { typeNode: TypeNode; isArray: boolean } {
   if (typeNode.kind !== SyntaxKind.ArrayType) {
@@ -187,38 +187,42 @@ function checkForArrayType(
   }
 }
 
-function checkForBasicOrNamedType(
+function flattenFieldType(
+  checker: TypeChecker,
   fieldTypeNode: TypeNode
-): { basicType: string; namedType: string } {
-  let basicType: string;
+): {
+  primitiveTypeName?: string;
+  enumTypeName?: string;
+  messageTypeName?: string;
+} {
   if (
     fieldTypeNode.kind === SyntaxKind.StringKeyword ||
     fieldTypeNode.kind === SyntaxKind.BooleanKeyword ||
     fieldTypeNode.kind === SyntaxKind.NumberKeyword
   ) {
-    basicType = fieldTypeNode.getText();
+    return {
+      primitiveTypeName: fieldTypeNode.getText(),
+    };
   }
-  let namedType: string;
-  if (fieldTypeNode.kind === SyntaxKind.TypeReference) {
-    namedType = ((fieldTypeNode as TypeReferenceNode).typeName as Identifier)
-      .text;
-  }
-  return {
-    basicType: basicType,
-    namedType: namedType,
-  };
-}
-
-function isInterfaceType(checker: TypeChecker, typeNode: TypeNode): boolean {
+  let typeDeclaration = checker.getTypeFromTypeNode(fieldTypeNode).symbol
+    .declarations[0];
   if (
-    typeNode.kind === SyntaxKind.StringKeyword ||
-    typeNode.kind === SyntaxKind.BooleanKeyword ||
-    typeNode.kind === SyntaxKind.NumberKeyword
+    typeDeclaration.kind === SyntaxKind.EnumDeclaration ||
+    // When an enum only has one member, TypeScript will optimize it to be a
+    // literal type with the only enum value.
+    typeDeclaration.kind === SyntaxKind.EnumMember
   ) {
-    return false;
+    return {
+      enumTypeName: fieldTypeNode.getText(),
+    };
+  } else if (typeDeclaration.kind === SyntaxKind.InterfaceDeclaration) {
+    return {
+      messageTypeName: fieldTypeNode.getText(),
+    };
   }
-  let type = checker.getTypeFromTypeNode(typeNode);
-  return type.symbol.declarations[0].kind === SyntaxKind.InterfaceDeclaration;
+  throw newInternalError(
+    `Cannot determine declaration type of ${fieldTypeNode.getText()}.`
+  );
 }
 
 function generateEnumDescriptor(
@@ -239,15 +243,11 @@ export enum ${enumName} {`);
 }
 `);
 
-  importer.importsFromNamedTypeDescriptor(
-    "NamedTypeDescriptor",
-    "NamedTypeKind"
-  );
+  importer.importsFromMessageDescriptor("EnumDescriptor");
   let descriptorName = toDescriptorName(enumName);
   contentList.push(`
-export let ${descriptorName}: NamedTypeDescriptor<${enumName}> = {
+export let ${descriptorName}: EnumDescriptor<${enumName}> = {
   name: '${enumName}',
-  kind: NamedTypeKind.ENUM,
   enumValues: [`);
   for (let member of enumNode.members) {
     contentList.push(`
@@ -264,6 +264,7 @@ export let ${descriptorName}: NamedTypeDescriptor<${enumName}> = {
 
 function generateMessageDescriptor(
   interfaceNode: InterfaceDeclaration,
+  checker: TypeChecker,
   contentList: Array<string>,
   importer: Importer
 ): void {
@@ -277,29 +278,25 @@ export interface ${interfaceName}`);
   for (let member of interfaceNode.members) {
     let field = member as PropertySignature;
     let fieldName = (field.name as Identifier).text;
-    let { typeNode: fieldTypeNode, isArray } = checkForArrayType(field.type);
-    let fieldType: string;
+    let { typeNode: fieldTypeNode, isArray } = flattenArrayType(field.type);
+    let fieldTypeName: string;
     if (isArray) {
-      fieldType = `Array<${fieldTypeNode.getText()}>`;
+      fieldTypeName = `Array<${fieldTypeNode.getText()}>`;
     } else {
-      fieldType = fieldTypeNode.getText();
+      fieldTypeName = fieldTypeNode.getText();
     }
     contentList.push(`${getLeadingComments(member)}
-  ${fieldName}?: ${fieldType},`);
+  ${fieldName}?: ${fieldTypeName},`);
   }
   contentList.push(`
 }
 `);
 
-  importer.importsFromNamedTypeDescriptor(
-    "NamedTypeDescriptor",
-    "NamedTypeKind"
-  );
+  importer.importsFromMessageDescriptor("MessageDescriptor");
   let descriptorName = toDescriptorName(interfaceName);
   contentList.push(`
-export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
+export let ${descriptorName}: MessageDescriptor<${interfaceName}> = {
   name: '${interfaceName}',
-  kind: NamedTypeKind.MESSAGE,
   factoryFn: () => {
     return new Object();
   },
@@ -314,24 +311,33 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
     }
   }
   for (let member of interfaceNode.members) {
-    importer.importsFromNamedTypeDescriptor("MessageFieldType");
     let field = member as PropertySignature;
     let fieldName = (field.name as Identifier).text;
     contentList.push(`
     {
       name: '${fieldName}',`);
-
-    let { typeNode: fieldTypeNode, isArray } = checkForArrayType(field.type);
-    let { basicType, namedType } = checkForBasicOrNamedType(fieldTypeNode);
-    if (basicType) {
+    let { typeNode: fieldTypeNode, isArray } = flattenArrayType(field.type);
+    let { primitiveTypeName, enumTypeName, messageTypeName } = flattenFieldType(
+      checker,
+      fieldTypeNode
+    );
+    if (primitiveTypeName) {
+      importer.importsFromMessageDescriptor("PrimitiveType");
       contentList.push(`
-      type: MessageFieldType.${basicType.toUpperCase()},`);
-    } else {
-      let namedTypeDescriptor = toDescriptorName(namedType);
-      importer.importDescriptorIfTypeImported(namedType, namedTypeDescriptor);
+      primitiveType: PrimitiveType.${primitiveTypeName.toUpperCase()},`);
+    } else if (enumTypeName) {
+      let enumDescriptorName = toDescriptorName(enumTypeName);
+      importer.importDescriptorIfTypeImported(enumTypeName, enumDescriptorName);
       contentList.push(`
-      type: MessageFieldType.NAMED_TYPE,
-      namedTypeDescriptor: ${namedTypeDescriptor},`);
+      enumDescriptor: ${enumDescriptorName},`);
+    } else if (messageTypeName) {
+      let messageDescriptorName = toDescriptorName(messageTypeName);
+      importer.importDescriptorIfTypeImported(
+        messageTypeName,
+        messageDescriptorName
+      );
+      contentList.push(`
+      messageDescriptor: ${messageDescriptorName},`);
     }
     if (isArray) {
       contentList.push(`
@@ -366,33 +372,33 @@ export class ${interfaceName}`);
   for (let member of interfaceNode.members) {
     let field = member as PropertySignature;
     let fieldName = (field.name as Identifier).text;
-    let { typeNode: fieldTypeNode, isArray } = checkForArrayType(field.type);
-    let isInterface = isInterfaceType(checker, fieldTypeNode);
-    let fieldType: string;
+    let { typeNode: fieldTypeNode, isArray } = flattenArrayType(field.type);
+    let { messageTypeName } = flattenFieldType(checker, fieldTypeNode);
+    let fieldTypeName: string;
     if (isArray) {
-      if (isInterface) {
+      if (messageTypeName) {
         importer.importFromObservableArray("ObservableNestedArray");
-        fieldType = `ObservableNestedArray<${fieldTypeNode.getText()}>`;
+        fieldTypeName = `ObservableNestedArray<${fieldTypeNode.getText()}>`;
       } else {
         importer.importFromObservableArray("ObservableArray");
-        fieldType = `ObservableArray<${fieldTypeNode.getText()}>`;
+        fieldTypeName = `ObservableArray<${fieldTypeNode.getText()}>`;
       }
     } else {
-      fieldType = fieldTypeNode.getText();
+      fieldTypeName = fieldTypeNode.getText();
     }
     contentList.push(`
   ${getLeadingComments(member)}
   public on${capitalize(
     fieldName
-  )}Change: (newValue: ${fieldType}, oldValue: ${fieldType}) => void;
-  private ${fieldName}_?: ${fieldType};
-  get ${fieldName}(): ${fieldType} {
+  )}Change: (newValue: ${fieldTypeName}, oldValue: ${fieldTypeName}) => void;
+  private ${fieldName}_?: ${fieldTypeName};
+  get ${fieldName}(): ${fieldTypeName} {
     return this.${fieldName}_;
   }
-  set ${fieldName}(value: ${fieldType}) {
+  set ${fieldName}(value: ${fieldTypeName}) {
     let oldValue = this.${fieldName}_;
     this.${fieldName}_ = value;`);
-    if (isArray || isInterface) {
+    if (isArray || messageTypeName) {
       contentList.push(`
     if (oldValue !== undefined) {
       oldValue.onChange = undefined;
@@ -428,15 +434,11 @@ export class ${interfaceName}`);
 }
 `);
 
-  importer.importsFromNamedTypeDescriptor(
-    "NamedTypeDescriptor",
-    "NamedTypeKind"
-  );
+  importer.importsFromMessageDescriptor("MessageDescriptor");
   let descriptorName = toDescriptorName(interfaceName);
   contentList.push(`
-export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
+export let ${descriptorName}: MessageDescriptor<${interfaceName}> = {
   name: '${interfaceName}',
-  kind: NamedTypeKind.MESSAGE,
   factoryFn: () => {
     return new ${interfaceName}();
   },
@@ -451,35 +453,43 @@ export let ${descriptorName}: NamedTypeDescriptor<${interfaceName}> = {
     }
   }
   for (let member of interfaceNode.members) {
-    importer.importsFromNamedTypeDescriptor("MessageFieldType");
     let field = member as PropertySignature;
     let fieldName = (field.name as Identifier).text;
     contentList.push(`
     {
       name: '${fieldName}',`);
-
-    let { typeNode: fieldTypeNode, isArray } = checkForArrayType(field.type);
-    let { basicType, namedType } = checkForBasicOrNamedType(fieldTypeNode);
-    if (basicType) {
+    let { typeNode: fieldTypeNode, isArray } = flattenArrayType(field.type);
+    let { primitiveTypeName, enumTypeName, messageTypeName } = flattenFieldType(
+      checker,
+      fieldTypeNode
+    );
+    if (primitiveTypeName) {
+      importer.importsFromMessageDescriptor("PrimitiveType");
       contentList.push(`
-      type: MessageFieldType.${basicType.toUpperCase()},`);
-    } else {
-      let namedTypeDescriptor = toDescriptorName(namedType);
-      importer.importDescriptorIfTypeImported(namedType, namedTypeDescriptor);
+      primitiveType: PrimitiveType.${primitiveTypeName.toUpperCase()},`);
+    } else if (enumTypeName) {
+      let enumDescriptorName = toDescriptorName(enumTypeName);
+      importer.importDescriptorIfTypeImported(enumTypeName, enumDescriptorName);
       contentList.push(`
-      type: MessageFieldType.NAMED_TYPE,
-      namedTypeDescriptor: ${namedTypeDescriptor},`);
+      enumDescriptor: ${enumDescriptorName},`);
+    } else if (messageTypeName) {
+      let messageDescriptorName = toDescriptorName(messageTypeName);
+      importer.importDescriptorIfTypeImported(
+        messageTypeName,
+        messageDescriptorName
+      );
+      contentList.push(`
+      messageDescriptor: ${messageDescriptorName},`);
     }
     if (isArray) {
-      let isInterface = isInterfaceType(checker, fieldTypeNode);
-      if (isInterface) {
+      if (messageTypeName) {
         contentList.push(`
-      arrayFactoryFn: () => {
+      observableArrayFactoryFn: () => {
         return new ObservableNestedArray<any>();
       },`);
       } else {
         contentList.push(`
-      arrayFactoryFn: () => {
+      observableArrayFactoryFn: () => {
         return new ObservableArray<any>();
       },`);
       }

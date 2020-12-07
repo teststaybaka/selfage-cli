@@ -4,7 +4,6 @@ import {
   ExtendedData,
   ExtendedData2,
 } from "./test_message_extended";
-import { NamedTypeKind } from "selfage/named_type_descriptor";
 import { assert } from "selfage/test_base";
 
 // Type checks.
@@ -20,14 +19,12 @@ let extendedData2: ExtendedData2 = {
 
 // Check EXTENDED_DATA.
 assert(EXTENDED_DATA.name === "ExtendedData");
-assert(EXTENDED_DATA.kind === NamedTypeKind.MESSAGE);
 assert(EXTENDED_DATA.messageFields.length === 2);
 assert(EXTENDED_DATA.messageFields[0].name === "data1");
 assert(EXTENDED_DATA.messageFields[1].name === "extendedField");
 
 // Check EXTENDED_DATA2.
 assert(EXTENDED_DATA2.name === "ExtendedData2");
-assert(EXTENDED_DATA2.kind === NamedTypeKind.MESSAGE);
 assert(EXTENDED_DATA2.messageFields.length === 3);
 assert(EXTENDED_DATA2.messageFields[0].name === "data1");
 assert(EXTENDED_DATA2.messageFields[1].name === "data2");

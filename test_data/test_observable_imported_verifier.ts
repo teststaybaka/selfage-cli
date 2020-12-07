@@ -1,10 +1,9 @@
-import { NestedData } from './test_observable_imported';
-import { BasicData } from './test_observable_basic';
-import { assert } from 'selfage/test_base';
+import { BASIC_DATA, BasicData } from "./test_observable_basic";
+import { NESTED_DATA, NestedData } from "./test_observable_imported";
+import { assert } from "selfage/test_base";
 
 let count = 0;
 let count2 = 0;
-
 let nestedData = new NestedData();
 let basicData = new BasicData();
 nestedData.onChange = () => {

@@ -1,10 +1,31 @@
-import { BasicData, Color, NestedData } from "./test_observable_nested";
+import {
+  BASIC_DATA,
+  BasicData,
+  COLOR,
+  Color,
+  NESTED_DATA,
+  NestedData,
+} from "./test_observable_nested";
+import { ObservableNestedArray } from "selfage/observable_array";
 import { assert } from "selfage/test_base";
-import { ObservableNestedArray } from 'selfage/observable_array';
+
+assert(NESTED_DATA.name === "NestedData");
+assert(NESTED_DATA.messageFields.length === 3);
+assert(NESTED_DATA.messageFields[0].name === "color");
+assert(NESTED_DATA.messageFields[0].enumDescriptor === COLOR);
+assert(NESTED_DATA.messageFields[0].arrayFactoryFn === undefined);
+assert(NESTED_DATA.messageFields[0].observableArrayFactoryFn === undefined);
+assert(NESTED_DATA.messageFields[1].name === "basicData");
+assert(NESTED_DATA.messageFields[1].messageDescriptor === BASIC_DATA);
+assert(NESTED_DATA.messageFields[1].arrayFactoryFn === undefined);
+assert(NESTED_DATA.messageFields[1].observableArrayFactoryFn === undefined);
+assert(NESTED_DATA.messageFields[2].name === "datas");
+assert(NESTED_DATA.messageFields[2].messageDescriptor === BASIC_DATA);
+assert(NESTED_DATA.messageFields[2].arrayFactoryFn === undefined);
+assert(NESTED_DATA.messageFields[2].observableArrayFactoryFn !== undefined);
 
 let count = 0;
 let count2 = 0;
-
 let nestedData = new NestedData();
 nestedData.onChange = () => {
   count++;
@@ -43,9 +64,22 @@ nestedData.datas = observableNestedArray;
 assert(count === 4);
 assert(count2 === 1);
 
-let basicData1 = new BasicData();
-observableNestedArray.push(basicData1);
+count2 = 0;
+let observableNestedArray2 = NESTED_DATA.messageFields[2].observableArrayFactoryFn() as ObservableNestedArray<
+  any
+>;
+nestedData.onDatasChange = (newValue, oldValue) => {
+  count2++;
+  assert(newValue === observableNestedArray2);
+  assert(oldValue === observableNestedArray);
+};
+nestedData.datas = observableNestedArray2;
 assert(count === 5);
+assert(count2 === 1);
 
-basicData1.data1 = 'xaxa';
+let basicData1 = new BasicData();
+nestedData.datas.push(basicData1);
 assert(count === 6);
+
+basicData1.data1 = "xaxa";
+assert(count === 7);
