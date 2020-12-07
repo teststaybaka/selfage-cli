@@ -47,6 +47,9 @@ assert(count2 === 1);
 observableArray.push(10);
 assert(count === 3);
 
+let serialized = JSON.stringify(basicData);
+assert(serialized === `{"booleanField":false,"numberArrayField":[10]}`);
+
 assert(DATA_WITH_COMMENT.name === "DataWithComment");
 assert(DATA_WITH_COMMENT.messageFields.length === 3);
 assert(DATA_WITH_COMMENT.messageFields[0].name === "stringField");
