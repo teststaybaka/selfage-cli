@@ -431,6 +431,18 @@ export class ${interfaceName}`);
   }
   contentList.push(`
   }
+
+  public toJSON(): any {
+    return {`);
+  for (let member of interfaceNode.members) {
+    let field = member as PropertySignature;
+    let fieldName = (field.name as Identifier).text;
+    contentList.push(`
+      ${fieldName}: this.${fieldName},`);
+  }
+  contentList.push(`
+    };
+  }
 }
 `);
 
