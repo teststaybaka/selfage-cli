@@ -1,7 +1,4 @@
-import {
-  MessageDescriptor,
-  PrimitiveType,
-} from "selfage/message_descriptor";
+import { MessageDescriptor, PrimitiveType } from "selfage/message_descriptor";
 
 export interface FileMtime {
   fileName?: string;
@@ -26,7 +23,7 @@ export let FILE_MTIME: MessageDescriptor<FileMtime> = {
 };
 
 export interface FileMtimeList {
-  fileMtimes?: FileMtime[];
+  fileMtimes?: Array<FileMtime>;
 }
 
 export let FILE_MTIME_LIST: MessageDescriptor<FileMtimeList> = {
