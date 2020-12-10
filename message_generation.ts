@@ -432,7 +432,7 @@ export class ${interfaceName}`);
   contentList.push(`
   }
 
-  public toJSON(): any {
+  public toJSON(): Object {
     return {`);
   for (let member of interfaceNode.members) {
     let field = member as PropertySignature;
