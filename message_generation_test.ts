@@ -3,9 +3,9 @@ import { spawnSync } from "child_process";
 import { writeFileSync } from "fs";
 import { newInternalError } from "selfage/errors";
 import {
-  Expectation,
   TestCase,
   TestSet,
+  assert,
   assertError,
   assertThrow,
 } from "selfage/test_base";
@@ -53,10 +53,10 @@ function verifyGeneratedMessage(
 
   // Verify
   for (let text of textsToMatch) {
-    Expectation.expect(content.includes(text), `${text} to be found.`);
+    assert(content.includes(text), `${text} to be found.`);
   }
   for (let text of textsToExclude) {
-    Expectation.expect(!content.includes(text), `${text} to be not found.`);
+    assert(!content.includes(text), `${text} to be not found.`);
   }
   // Use `tsc` to check if generated messages contain any syntax or type error
   // and can be properly imported in the corresponding prober module. Execute

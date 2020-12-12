@@ -6,7 +6,7 @@ import {
   packChromeExtension,
 } from "./build";
 import { spawnSync } from "child_process";
-import { Expectation, TestCase, TestSet, assert } from "selfage/test_base";
+import { TestCase, TestSet, assert } from "selfage/test_base";
 
 function compileTypeScript(...files: string[]) {
   spawnSync("npx", ["tsc", "--inlineSourceMap", "--inlineSources", ...files], {
@@ -49,8 +49,8 @@ class BuildWebForTheFirstTime implements TestCase {
     await buildWebPage("./test_data/build_web");
 
     // Verify
-    Expectation.expect(fs.existsSync("./test_data/build_web/main.html"));
-    Expectation.expect(fs.existsSync("./test_data/build_web/main.html.gz"));
+    assert(fs.existsSync("./test_data/build_web/main.html"));
+    assert(fs.existsSync("./test_data/build_web/main.html.gz"));
 
     // Cleanup
     await cleanupBuilt();
@@ -73,7 +73,7 @@ class BuildWebSkipBundlingWithoutChanges implements TestCase {
     try {
       assert(fs.existsSync("./test_data/build_web/main.html"));
       let mtimeActual = fs.statSync("./test_data/build_web/main.html").mtimeMs;
-      Expectation.expect(mtimeActual === mtime);
+      assert(mtimeActual === mtime);
     } finally {
       // Cleanup
       await cleanupBuilt();
@@ -103,7 +103,7 @@ class BuildWebAfterModifyingMainFile implements TestCase {
     try {
       assert(fs.existsSync("./test_data/build_web/main.html"));
       let mtimeActual = fs.statSync("./test_data/build_web/main.html").mtimeMs;
-      Expectation.expect(mtimeActual > mtime);
+      assert(mtimeActual > mtime);
     } finally {
       // Cleanup
       fs.writeFileSync("./test_data/build_web/main.ts", backupMain);
@@ -134,7 +134,7 @@ class BuildWebAfterModifyingOneDependency implements TestCase {
     try {
       assert(fs.existsSync("./test_data/build_web/main.html"));
       let mtimeActual = fs.statSync("./test_data/build_web/main.html").mtimeMs;
-      Expectation.expect(mtimeActual > mtime);
+      assert(mtimeActual > mtime);
     } finally {
       // Cleanup
       fs.writeFileSync("./test_data/build_web/lib_foo.ts", backupLibFoo);
@@ -167,7 +167,7 @@ class BuildWebAfterRemovingOneDependency implements TestCase {
     try {
       assert(fs.existsSync("./test_data/build_web/main.html"));
       let mtimeActual = fs.statSync("./test_data/build_web/main.html").mtimeMs;
-      Expectation.expect(mtimeActual > mtime);
+      assert(mtimeActual > mtime);
     } finally {
       // Cleanup
       fs.writeFileSync("./test_data/build_web/lib_foo.ts", backupLibFoo);
@@ -226,58 +226,58 @@ class BuildChromeExtesnion implements TestCase {
     );
 
     // Verify
-    Expectation.expect(bundledFiles.length === 6);
-    Expectation.expect(
+    assert(bundledFiles.length === 6);
+    assert(
       bundledFiles[0] ===
         "test_data/build_chrome_extension/background/main.bundle.js"
     );
-    Expectation.expect(
+    assert(
       bundledFiles[1] ===
         "test_data/build_chrome_extension/background/main2.bundle.js"
     );
-    Expectation.expect(
+    assert(
       bundledFiles[2] ===
         "test_data/build_chrome_extension/content_script/main.bundle.js"
     );
-    Expectation.expect(
+    assert(
       bundledFiles[3] ===
         "test_data/build_chrome_extension/content_script/main2.bundle.js"
     );
-    Expectation.expect(
+    assert(
       bundledFiles[4] ===
         "test_data/build_chrome_extension/content_script/static_main.bundle.js"
     );
-    Expectation.expect(
+    assert(
       bundledFiles[5] ===
         "test_data/build_chrome_extension/browser_action/main.bundle.html"
     );
-    Expectation.expect(ignoredFiles.length == 0);
-    Expectation.expect(
+    assert(ignoredFiles.length == 0);
+    assert(
       fs.existsSync(
         "./test_data/build_chrome_extension/browser_action/main.bundle.html"
       )
     );
-    Expectation.expect(
+    assert(
       fs.existsSync(
         "./test_data/build_chrome_extension/background/main.bundle.js"
       )
     );
-    Expectation.expect(
+    assert(
       fs.existsSync(
         "./test_data/build_chrome_extension/background/main2.bundle.js"
       )
     );
-    Expectation.expect(
+    assert(
       fs.existsSync(
         "./test_data/build_chrome_extension/content_script/main.bundle.js"
       )
     );
-    Expectation.expect(
+    assert(
       fs.existsSync(
         "./test_data/build_chrome_extension/content_script/main2.bundle.js"
       )
     );
-    Expectation.expect(
+    assert(
       fs.existsSync(
         "./test_data/build_chrome_extension/content_script/static_main.bundle.js"
       )
@@ -290,8 +290,8 @@ class BuildChromeExtesnion implements TestCase {
           .readFileSync("./test_data/build_chrome_extension/manifest.json")
           .toString()
       );
-      Expectation.expect(manifest.manifest_version === 2);
-      Expectation.expect(manifest.version === "2.4.3");
+      assert(manifest.manifest_version === 2);
+      assert(manifest.version === "2.4.3");
     } finally {
       // Cleanup
       await cleanupChromeExtension();
@@ -310,7 +310,7 @@ class PackChromeExtension implements TestCase {
     await packChromeExtension("./test_data/build_chrome_extension");
 
     // Verify
-    Expectation.expect(
+    assert(
       fs.existsSync("./test_data/build_chrome_extension/chrome_extension.zip")
     );
 
@@ -352,13 +352,13 @@ class CleanCurentDirectory implements TestCase {
     await clean("./test_data");
 
     // Verify
-    Expectation.expect(fs.existsSync("./test_data/compiled.ts"));
-    Expectation.expect(!fs.existsSync("./test_data/compiled.js"));
-    Expectation.expect(fs.existsSync("./test_data/compiled2.ts"));
-    Expectation.expect(!fs.existsSync("./test_data/compiled2.js"));
-    Expectation.expect(!fs.existsSync("./test_data/compiled2.gz"));
-    Expectation.expect(!fs.existsSync("./test_data/compiled2.filemtime"));
-    Expectation.expect(!fs.existsSync("./test_data/manifest.json"));
+    assert(fs.existsSync("./test_data/compiled.ts"));
+    assert(!fs.existsSync("./test_data/compiled.js"));
+    assert(fs.existsSync("./test_data/compiled2.ts"));
+    assert(!fs.existsSync("./test_data/compiled2.js"));
+    assert(!fs.existsSync("./test_data/compiled2.gz"));
+    assert(!fs.existsSync("./test_data/compiled2.filemtime"));
+    assert(!fs.existsSync("./test_data/manifest.json"));
 
     // Cleanup
     await unlinkFiles(
@@ -415,14 +415,14 @@ class CleanRecursiveFiles implements TestCase {
     await clean("./test_data");
 
     // Verify
-    Expectation.expect(fs.existsSync("./test_data/dir/compiled.ts"));
-    Expectation.expect(!fs.existsSync("./test_data/dir/compiled.js"));
-    Expectation.expect(fs.existsSync("./test_data/dir/dir2/compiled2.ts"));
-    Expectation.expect(!fs.existsSync("./test_data/dir/dir2/compiled2.js"));
-    Expectation.expect(fs.existsSync("./test_data/dir1/compiled3.ts"));
-    Expectation.expect(!fs.existsSync("./test_data/dir1/compiled3.js"));
-    Expectation.expect(fs.existsSync("./test_data/node_modules/compiled4.ts"));
-    Expectation.expect(fs.existsSync("./test_data/node_modules/compiled4.js"));
+    assert(fs.existsSync("./test_data/dir/compiled.ts"));
+    assert(!fs.existsSync("./test_data/dir/compiled.js"));
+    assert(fs.existsSync("./test_data/dir/dir2/compiled2.ts"));
+    assert(!fs.existsSync("./test_data/dir/dir2/compiled2.js"));
+    assert(fs.existsSync("./test_data/dir1/compiled3.ts"));
+    assert(!fs.existsSync("./test_data/dir1/compiled3.js"));
+    assert(fs.existsSync("./test_data/node_modules/compiled4.ts"));
+    assert(fs.existsSync("./test_data/node_modules/compiled4.js"));
 
     // Cleanup
     await unlinkFiles(
