@@ -1,0 +1,41 @@
+[{
+  "message": {
+    "name": "BasicData",
+    "fields": [{
+      "name": "data1",
+      "type": "string"
+    }]
+  }
+}, {
+  "message": {
+    "name": "BasicData2",
+    "fields": [{
+      "name": "data2",
+      "type": "string"
+    }]
+  }
+}, {
+  "message": {
+    "name": "ExtendedData",
+    "fields": [{
+      "name": "extendedField",
+      "type": "string"
+    }],
+    "extends": [{
+      "name": "BasicData"
+    }]
+  }
+}, {
+  "message": {
+    "name": "ExtendedData2",
+    "fields": [{
+      "name": "extendedField",
+      "type": "string"
+    }],
+    "extends": [{
+      "name": "BasicData"
+    }, {
+      "name": "BasicData2"
+    }]
+  }
+}]

@@ -1,0 +1,34 @@
+[{
+  "enum": {
+    "name": "Color",
+    "values": [{
+      "name": "RED",
+      "value": 1
+    }]
+  }
+}, {
+  "message": {
+    "name": "BasicData",
+    "fields": [{
+      "name": "data1",
+      "type": "string"
+    }],
+    "isObservable": true
+  }
+}, {
+  "message": {
+    "name": "NestedData",
+    "fields": [{
+      "name": "color",
+      "type": "Color"
+    }, {
+      "name": "basicData",
+      "type": "BasicData"
+    }, {
+      "name": "datas",
+      "type": "BasicData",
+      "isArray": true
+    }],
+    "isObservable": true
+  }
+}]

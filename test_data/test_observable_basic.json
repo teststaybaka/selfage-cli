@@ -1,0 +1,44 @@
+[{
+  "enum": {
+    "name": "Color",
+    "values": [{
+      "name": "RED",
+      "value": 1
+    }]
+  }
+}, {
+  "message": {
+    "name": "BasicData",
+    "fields": [{
+      "name": "booleanField",
+      "type": "boolean"
+    }, {
+      "name": "numberField",
+      "type": "number"
+    }, {
+      "name": "numberArrayField",
+      "type": "number",
+      "isArray": true
+    }],
+    "isObservable": true
+  }
+}, {
+  "message": {
+    "name": "DataWithComment",
+    "fields": [{
+      "name": "stringField",
+      "type": "string"
+    }, {
+      "name": "stringArrayField",
+      "type": "string",
+      "isArray": true,
+      "comment": "Comment1\nComment2"
+    }, {
+      "name": "booleanArrayField",
+      "type": "boolean",
+      "isArray": true
+    }],
+    "isObservable": true,
+    "comment": "Comment3"
+  }
+}]

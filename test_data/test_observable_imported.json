@@ -1,0 +1,28 @@
+[{
+  "message": {
+    "name": "ExtendedData",
+    "fields": [{
+      "name": "booleanField2",
+      "type": "boolean"
+    }],
+    "extends": [{
+      "name": "BasicData",
+      "import": "./test_observable_basic"
+    }],
+    "isObservable": true
+  }
+}, {
+  "message": {
+    "name": "NestedData",
+    "fields": [{
+      "name": "color",
+      "type": "Color",
+      "import": "./test_observable_basic"
+    }, {
+      "name": "basicData",
+      "type": "BasicData",
+      "import": "./test_observable_basic"
+    }],
+    "isObservable": true
+  }
+}]

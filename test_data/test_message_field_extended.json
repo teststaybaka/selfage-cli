@@ -1,0 +1,14 @@
+[{
+  "message": {
+    "name": "ExtendNestedData",
+    "fields": [{
+      "name": "basicData",
+      "type": "ExtendedData",
+      "import": "./test_message_imported"
+    }],
+    "extends": [{
+      "name": "NestedData",
+      "import": "./test_message_imported"
+    }]
+  }
+}]

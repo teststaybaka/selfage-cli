@@ -1,4 +1,4 @@
-import { generateMessage } from "./message_generation";
+import { generateMessage } from "./message_generation_deprecated";
 import { spawnSync } from "child_process";
 import { writeFileSync } from "fs";
 import { newInternalError } from "selfage/errors";

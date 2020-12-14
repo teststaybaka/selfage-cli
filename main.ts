@@ -184,14 +184,11 @@ async function main(): Promise<void> {
       let packageDirectory = options.packageDirectory
         ? options.packageDirectory
         : "selfage";
-      let { filename: outputFile, content } = generateMessage(
-        modulePath,
-        packageDirectory
-      );
+      let content = generateMessage(modulePath, packageDirectory);
       let contentFormatted = prettier.format(content, {
         parser: "typescript",
       });
-      writeFile(outputFile, contentFormatted, options.dryRun);
+      writeFile(modulePath + ".ts", contentFormatted, options.dryRun);
     });
   await program.parseAsync();
 }

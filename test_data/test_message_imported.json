@@ -1,0 +1,26 @@
+[{
+  "message": {
+    "name": "ExtendedData",
+    "fields": [{
+      "name": "extendedField",
+      "type": "string"
+    }],
+    "extends": [{
+      "name": "BasicData",
+      "import": "./test_message_basic"
+    }]
+  }
+}, {
+  "message": {
+    "name": "NestedData",
+    "fields": [{
+      "name": "basicData",
+      "type": "BasicData",
+      "import": "./test_message_basic"
+    }, {
+      "name": "color",
+      "type": "Color",
+      "import": "./test_message_basic"
+    }]
+  }
+}]

@@ -1,0 +1,79 @@
+[{
+  "message": {
+    "name": "BasicData",
+    "fields": [{
+      "name": "numberField",
+      "type": "number"
+    }, {
+      "name": "stringField",
+      "type": "string"
+    }, {
+      "name": "booleanField",
+      "type": "boolean"
+    }, {
+      "name": "numberArrayField",
+      "type": "number",
+      "isArray": true
+    }, {
+      "name": "stringArrayField",
+      "type": "string",
+      "isArray": true
+    }, {
+      "name": "booleanArrayField",
+      "type": "boolean",
+      "isArray": true
+    }]
+  }
+}, {
+  "message": {
+    "name": "ExportsOptionals",
+    "fields": [{
+      "name": "numberField",
+      "type": "number"
+    }, {
+      "name": "stringField",
+      "type": "string"
+    }, {
+      "name": "booleanField",
+      "type": "boolean",
+      "comment": "Comment1"
+    }, {
+      "name": "numberArrayField",
+      "type": "number",
+      "isArray": true
+    }, {
+      "name": "stringArrayField",
+      "type": "string",
+      "isArray": true
+    }, {
+      "name": "booleanArrayField",
+      "type": "boolean",
+      "isArray": true
+    }],
+    "comment": "Comment2\nComment3"
+  }
+}, {
+  "enum": {
+    "name": "NoExportOneEnum",
+    "values": [{
+      "name": "ONE",
+      "value": 1
+    }]
+  }
+}, {
+  "enum": {
+    "name": "Color",
+    "values": [{
+      "name": "RED",
+      "value": 1,
+      "comment": "Comment4"
+    }, {
+      "name": "GREEN",
+      "value": 2
+    }, {
+      "name": "BLUE",
+      "value": 10
+    }],
+    "comment": "Comment5"
+  }
+}]
