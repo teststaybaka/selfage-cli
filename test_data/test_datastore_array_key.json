@@ -1,0 +1,15 @@
+[{
+  "message": {
+    "name": "Data",
+    "fields": [{
+      "name": "stringArrayField",
+      "type": "string",
+      "isArray": true
+    }]
+  }
+}, {
+  "datastore": {
+    "messageName": "Data",
+    "key": "stringArrayField"
+  }
+}]

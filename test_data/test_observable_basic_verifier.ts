@@ -9,16 +9,16 @@ import { ObservableArray } from "selfage/observable_array";
 import { assert } from "selfage/test_base";
 
 assert(BASIC_DATA.name === "BasicData");
-assert(BASIC_DATA.messageFields.length === 3);
-assert(BASIC_DATA.messageFields[0].name === "booleanField");
-assert(BASIC_DATA.messageFields[0].primitiveType === PrimitiveType.BOOLEAN);
-assert(BASIC_DATA.messageFields[0].observableArrayFactoryFn === undefined);
-assert(BASIC_DATA.messageFields[1].name === "numberField");
-assert(BASIC_DATA.messageFields[1].primitiveType === PrimitiveType.NUMBER);
-assert(BASIC_DATA.messageFields[1].observableArrayFactoryFn === undefined);
-assert(BASIC_DATA.messageFields[2].name === "numberArrayField");
-assert(BASIC_DATA.messageFields[2].primitiveType === PrimitiveType.NUMBER);
-assert(BASIC_DATA.messageFields[2].observableArrayFactoryFn !== undefined);
+assert(BASIC_DATA.fields.length === 3);
+assert(BASIC_DATA.fields[0].name === "booleanField");
+assert(BASIC_DATA.fields[0].primitiveType === PrimitiveType.BOOLEAN);
+assert(BASIC_DATA.fields[0].observableArrayFactoryFn === undefined);
+assert(BASIC_DATA.fields[1].name === "numberField");
+assert(BASIC_DATA.fields[1].primitiveType === PrimitiveType.NUMBER);
+assert(BASIC_DATA.fields[1].observableArrayFactoryFn === undefined);
+assert(BASIC_DATA.fields[2].name === "numberArrayField");
+assert(BASIC_DATA.fields[2].primitiveType === PrimitiveType.NUMBER);
+assert(BASIC_DATA.fields[2].observableArrayFactoryFn !== undefined);
 
 let count = 0;
 let count2 = 0;
@@ -46,7 +46,7 @@ assert(count === 2);
 assert(count2 === 1);
 
 count2 = 0;
-let observableArray = BASIC_DATA.messageFields[2].observableArrayFactoryFn();
+let observableArray = BASIC_DATA.fields[2].observableArrayFactoryFn();
 basicData.onNumberArrayFieldChange = (newValue, oldValue) => {
   count2++;
   assert(newValue === observableArray);
@@ -63,27 +63,27 @@ let serialized = JSON.stringify(basicData);
 assert(serialized === `{"booleanField":false,"numberField":3,"numberArrayField":[10]}`);
 
 assert(DATA_WITH_COMMENT.name === "DataWithComment");
-assert(DATA_WITH_COMMENT.messageFields.length === 3);
-assert(DATA_WITH_COMMENT.messageFields[0].name === "stringField");
+assert(DATA_WITH_COMMENT.fields.length === 3);
+assert(DATA_WITH_COMMENT.fields[0].name === "stringField");
 assert(
-  DATA_WITH_COMMENT.messageFields[0].primitiveType === PrimitiveType.STRING
+  DATA_WITH_COMMENT.fields[0].primitiveType === PrimitiveType.STRING
 );
 assert(
-  DATA_WITH_COMMENT.messageFields[0].observableArrayFactoryFn === undefined
+  DATA_WITH_COMMENT.fields[0].observableArrayFactoryFn === undefined
 );
-assert(DATA_WITH_COMMENT.messageFields[1].name === "stringArrayField");
+assert(DATA_WITH_COMMENT.fields[1].name === "stringArrayField");
 assert(
-  DATA_WITH_COMMENT.messageFields[1].primitiveType === PrimitiveType.STRING
-);
-assert(
-  DATA_WITH_COMMENT.messageFields[1].observableArrayFactoryFn !== undefined
-);
-assert(DATA_WITH_COMMENT.messageFields[2].name === "booleanArrayField");
-assert(
-  DATA_WITH_COMMENT.messageFields[2].primitiveType === PrimitiveType.BOOLEAN
+  DATA_WITH_COMMENT.fields[1].primitiveType === PrimitiveType.STRING
 );
 assert(
-  DATA_WITH_COMMENT.messageFields[2].observableArrayFactoryFn !== undefined
+  DATA_WITH_COMMENT.fields[1].observableArrayFactoryFn !== undefined
+);
+assert(DATA_WITH_COMMENT.fields[2].name === "booleanArrayField");
+assert(
+  DATA_WITH_COMMENT.fields[2].primitiveType === PrimitiveType.BOOLEAN
+);
+assert(
+  DATA_WITH_COMMENT.fields[2].observableArrayFactoryFn !== undefined
 );
 
 let dataWithComment = new DataWithComment();

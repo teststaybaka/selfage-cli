@@ -19,13 +19,13 @@ let extendedData2: ExtendedData2 = {
 
 // Check EXTENDED_DATA.
 assert(EXTENDED_DATA.name === "ExtendedData");
-assert(EXTENDED_DATA.messageFields.length === 2);
-assert(EXTENDED_DATA.messageFields[0].name === "data1");
-assert(EXTENDED_DATA.messageFields[1].name === "extendedField");
+assert(EXTENDED_DATA.fields.length === 2);
+assert(EXTENDED_DATA.fields[0].name === "data1");
+assert(EXTENDED_DATA.fields[1].name === "extendedField");
 
 // Check EXTENDED_DATA2.
 assert(EXTENDED_DATA2.name === "ExtendedData2");
-assert(EXTENDED_DATA2.messageFields.length === 3);
-assert(EXTENDED_DATA2.messageFields[0].name === "data1");
-assert(EXTENDED_DATA2.messageFields[1].name === "data2");
-assert(EXTENDED_DATA2.messageFields[2].name === "extendedField");
+assert(EXTENDED_DATA2.fields.length === 3);
+assert(EXTENDED_DATA2.fields[0].name === "data1");
+assert(EXTENDED_DATA2.fields[1].name === "data2");
+assert(EXTENDED_DATA2.fields[2].name === "extendedField");

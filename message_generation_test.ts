@@ -1,7 +1,14 @@
 import { generateMessage } from "./message_generation";
 import { spawnSync } from "child_process";
 import { writeFileSync } from "fs";
-import { TestCase, TestSet, assert } from "selfage/test_base";
+import { newInternalError } from "selfage/errors";
+import {
+  TestCase,
+  TestSet,
+  assert,
+  assertError,
+  assertThrow,
+} from "selfage/test_base";
 
 function verifyGeneratedMessage(
   testTargetModule: string,
@@ -158,6 +165,102 @@ class GenerateImportedObservables implements TestCase {
   }
 }
 
+/**
+ * Covers when referencing a message not defined.
+ **/
+class GenerateDatastoreMessageNotFound implements TestCase {
+  public name = "GenerateDatastoreMessageNotFound";
+
+  public async execute() {
+    let error = assertThrow(() =>
+      verifyGeneratedMessage("./test_data/test_datastore_no_message")
+    );
+    assertError(error, newInternalError("Message definition of"));
+  }
+}
+
+/**
+ * Covers when the key not defined from the referenced message.
+ **/
+class GenerateDatastoreKeyNotFound implements TestCase {
+  public name = "GenerateDatastoreKeyNotFound";
+
+  public async execute() {
+    let error = assertThrow(() =>
+      verifyGeneratedMessage("./test_data/test_datastore_no_key")
+    );
+    assertError(error, newInternalError("Datastore key noField is not found"));
+  }
+}
+
+/**
+ * Covers when a boolean key is defined, but it's invalid.
+ **/
+class GenerateDatastoreBooleanKey implements TestCase {
+  public name = "GenerateDatastoreBooleanKey";
+
+  public async execute() {
+    let error = assertThrow(() =>
+      verifyGeneratedMessage("./test_data/test_datastore_boolean_key")
+    );
+    assertError(error, newInternalError("key only be a string or a number"));
+  }
+}
+
+/**
+ * Covers when an array key is defined, but it's invalid.
+ **/
+class GenerateDatastoreArrayKey implements TestCase {
+  public name = "GenerateDatastoreArrayKey";
+
+  public async execute() {
+    let error = assertThrow(() =>
+      verifyGeneratedMessage("./test_data/test_datastore_array_key")
+    );
+    assertError(error, newInternalError("cannot be an array"));
+  }
+}
+
+/**
+ * Covers when a property to be index is not found from the referenced message.
+ **/
+class GenerateDatastoreIndexNotFound implements TestCase {
+  public name = "GenerateDatastoreIndexNotFound";
+
+  public async execute() {
+    let error = assertThrow(() =>
+      verifyGeneratedMessage("./test_data/test_datastore_no_index_property")
+    );
+    assertError(error, newInternalError("Index noField is not defined"));
+  }
+}
+
+/**
+ * Covers generating key, indexes and execluded indexes.
+ **/
+class GenerateBasicDatastore implements TestCase {
+  public name = "GenerateBasicDatastore";
+
+  public async execute() {
+    verifyGeneratedMessage(
+      "./test_data/test_datastore_basic",
+      [],
+      ["Comment1"]
+    );
+  }
+}
+
+/**
+ * Covers when message is imported and no index is defined.
+ **/
+class GenerateImportedDatastoreWithoutIndex implements TestCase {
+  public name = "GenerateImportedDatastoreWithoutIndex";
+
+  public async execute() {
+    verifyGeneratedMessage("./test_data/test_datastore_imported_no_index");
+  }
+}
+
 export let MESSAGE_GENERATION_TEST: TestSet = {
   name: "MessageGenerationTest",
   cases: [
@@ -169,5 +272,12 @@ export let MESSAGE_GENERATION_TEST: TestSet = {
     new GenerateBasicObservables(),
     new GenerateNestedObservables(),
     new GenerateImportedObservables(),
+    new GenerateDatastoreMessageNotFound(),
+    new GenerateDatastoreKeyNotFound(),
+    new GenerateDatastoreBooleanKey(),
+    new GenerateDatastoreArrayKey(),
+    new GenerateDatastoreIndexNotFound(),
+    new GenerateBasicDatastore(),
+    new GenerateImportedDatastoreWithoutIndex(),
   ],
 };

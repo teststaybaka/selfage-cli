@@ -1,0 +1,7 @@
+[{
+  "datastore": {
+    "messageName": "BasicData",
+    "import": "./test_message_basic",
+    "key": "numberField"
+  }
+}]

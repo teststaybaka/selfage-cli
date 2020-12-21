@@ -1,0 +1,14 @@
+[{
+  "message": {
+    "name": "Data",
+    "fields": [{
+      "name": "booleanField",
+      "type": "boolean"
+    }]
+  }
+}, {
+  "datastore": {
+    "messageName": "Data",
+    "key": "noField"
+  }
+}]

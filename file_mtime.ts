@@ -10,7 +10,7 @@ export let FILE_MTIME: MessageDescriptor<FileMtime> = {
   factoryFn: () => {
     return new Object();
   },
-  messageFields: [
+  fields: [
     {
       name: "fileName",
       primitiveType: PrimitiveType.STRING,
@@ -31,7 +31,7 @@ export let FILE_MTIME_LIST: MessageDescriptor<FileMtimeList> = {
   factoryFn: () => {
     return new Object();
   },
-  messageFields: [
+  fields: [
     {
       name: "fileMtimes",
       messageDescriptor: FILE_MTIME,

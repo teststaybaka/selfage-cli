@@ -35,14 +35,33 @@ interface MessageExtendDefinition {
 interface MessageDefinition {
   name: string;
   fields: Array<MessageFieldDefinition>;
-  isObservable?: true;
   extends?: Array<MessageExtendDefinition>;
+  isObservable?: true;
+  comment?: string;
+}
+
+interface IndexProperty {
+  name: string;
+  descending?: boolean;
+}
+
+interface IndexDefinition {
+  name: string;
+  properties: Array<IndexProperty>;
+}
+
+interface DatastoreDefinition {
+  messageName: string;
+  import?: string;
+  key: string;
+  indexes?: Array<IndexDefinition>;
   comment?: string;
 }
 
 interface Definition {
   enum?: EnumDefinition;
   message?: MessageDefinition;
+  datastore?: DatastoreDefinition;
 }
 
 export function generateMessage(
@@ -52,57 +71,63 @@ export function generateMessage(
   let definitions = JSON.parse(
     fs.readFileSync(modulePath + ".json").toString()
   ) as Array<Definition>;
-
-  let pathObj = path.parse(modulePath);
-  let typeChecker = new TypeChecker(pathObj.dir, pathObj.base);
-
   let importer = new Importer(selfageDir);
   let contentList = new Array<string>();
   for (let definition of definitions) {
     if (definition.enum) {
-      generateEnumDescriptor(definition.enum, contentList, importer);
+      generateEnumDescriptor(definition.enum, importer, contentList);
     } else if (definition.message) {
       if (!definition.message.isObservable) {
         generateMessageDescriptor(
           definition.message,
-          typeChecker,
-          contentList,
-          importer
+          modulePath,
+          importer,
+          contentList
         );
       } else {
         generateObservableDescriptor(
           definition.message,
-          typeChecker,
-          contentList,
-          importer
+          modulePath,
+          importer,
+          contentList
         );
       }
+    } else if (definition.datastore) {
+      generateDatastoreModel(
+        definition.datastore,
+        modulePath,
+        importer,
+        contentList
+      );
     } else {
       throw newInternalError("Unsupported new definition.");
     }
   }
-  contentList = [...importer.toStringList(), ...contentList];
-  return contentList.join("");
+  return [...importer.toStringList(), ...contentList].join("");
 }
 
 class TypeChecker {
+  private currentDir: string;
+  private currentFileBase: string;
   private cachedPathToMessages = new Map<string, Set<string>>();
 
-  public constructor(private rootDir: string, private rootFile: string) {}
+  public constructor(currentModulePath: string) {
+    let pathObj = path.parse(currentModulePath);
+    this.currentDir = pathObj.dir;
+    this.currentFileBase = pathObj.base;
+  }
 
   public isNestedMessage(typeName: string, importPath?: string): boolean {
-    let modulePath: string;
-    if (importPath) {
-      modulePath = path.join(this.rootDir, importPath);
-    } else {
-      modulePath = path.join(this.rootDir, this.rootFile);
+    if (!importPath) {
+      importPath = this.currentFileBase;
     }
-    let messages = this.cachedPathToMessages.get(modulePath);
+    let filePath = path.join(this.currentDir, importPath + ".json");
+    let messages = this.cachedPathToMessages.get(filePath);
     if (!messages) {
       messages = new Set<string>();
-      this.cachedPathToMessages.set(modulePath, messages);
+      this.cachedPathToMessages.set(filePath, messages);
       let definitions = JSON.parse(
-        fs.readFileSync(modulePath + ".json").toString()
+        fs.readFileSync(filePath).toString()
       ) as Array<Definition>;
       for (let definition of definitions) {
         if (definition.message) {
@@ -120,25 +145,31 @@ class Importer {
 
   public constructor(private selfageDir: string) {}
 
-  public importsFromMessageDescriptor(...namedImports: Array<string>): void {
-    this.importIfPathExists(
+  public importFromDatastoreModelDescriptor(
+    ...namedImports: Array<string>
+  ): void {
+    this.importFromPath(
+      this.selfageDir + "/be/datastore_model_descriptor",
+      ...namedImports
+    );
+  }
+
+  public importFromMessageDescriptor(...namedImports: Array<string>): void {
+    this.importFromPath(
       this.selfageDir + "/message_descriptor",
       ...namedImports
     );
   }
 
   public importFromObservable(...namedImports: Array<string>) {
-    this.importIfPathExists(this.selfageDir + "/observable", ...namedImports);
+    this.importFromPath(this.selfageDir + "/observable", ...namedImports);
   }
 
   public importFromObservableArray(...namedImports: Array<string>): void {
-    this.importIfPathExists(
-      this.selfageDir + "/observable_array",
-      ...namedImports
-    );
+    this.importFromPath(this.selfageDir + "/observable_array", ...namedImports);
   }
 
-  public importIfPathExists(
+  public importFromPath(
     path: string | undefined,
     ...namedImports: Array<string>
   ): void {
@@ -206,8 +237,8 @@ function generateComment(comment: string): string {
 
 function generateEnumDescriptor(
   enumDefinition: EnumDefinition,
-  contentList: Array<string>,
-  importer: Importer
+  importer: Importer,
+  contentList: Array<string>
 ): void {
   let enumName = enumDefinition.name;
   contentList.push(`${generateComment(enumDefinition.comment)}
@@ -220,12 +251,12 @@ export enum ${enumName} {`);
 }
 `);
 
-  importer.importsFromMessageDescriptor("EnumDescriptor");
+  importer.importFromMessageDescriptor("EnumDescriptor");
   let descriptorName = toUpperSnaked(enumName);
   contentList.push(`
 export let ${descriptorName}: EnumDescriptor<${enumName}> = {
   name: '${enumName}',
-  enumValues: [`);
+  values: [`);
   for (let value of enumDefinition.values) {
     contentList.push(`
     {
@@ -241,10 +272,11 @@ export let ${descriptorName}: EnumDescriptor<${enumName}> = {
 
 function generateMessageDescriptor(
   messageDefinition: MessageDefinition,
-  typeChecker: TypeChecker,
-  contentList: Array<string>,
-  importer: Importer
+  currentModulePath: string,
+  importer: Importer,
+  contentList: Array<string>
 ): void {
+  let typeChecker = new TypeChecker(currentModulePath);
   let messageName = messageDefinition.name;
   contentList.push(`${generateComment(messageDefinition.comment)}
 export interface ${messageName}`);
@@ -273,7 +305,7 @@ export interface ${messageName}`);
 }
 `);
 
-  importer.importsFromMessageDescriptor("MessageDescriptor");
+  importer.importFromMessageDescriptor("MessageDescriptor");
   let descriptorName = toUpperSnaked(messageName);
   contentList.push(`
 export let ${descriptorName}: MessageDescriptor<${messageName}> = {
@@ -281,13 +313,13 @@ export let ${descriptorName}: MessageDescriptor<${messageName}> = {
   factoryFn: () => {
     return new Object();
   },
-  messageFields: [`);
+  fields: [`);
   if (messageDefinition.extends) {
     for (let ext of messageDefinition.extends) {
       let extDescriptorName = toUpperSnaked(ext.name);
-      importer.importIfPathExists(ext.import, ext.name, extDescriptorName);
+      importer.importFromPath(ext.import, ext.name, extDescriptorName);
       contentList.push(`
-    ...${extDescriptorName}.messageFields,`);
+    ...${extDescriptorName}.fields,`);
     }
   }
   for (let field of messageDefinition.fields) {
@@ -300,21 +332,17 @@ export let ${descriptorName}: MessageDescriptor<${messageName}> = {
       field.import
     );
     if (primitiveTypeName) {
-      importer.importsFromMessageDescriptor("PrimitiveType");
+      importer.importFromMessageDescriptor("PrimitiveType");
       contentList.push(`
       primitiveType: PrimitiveType.${primitiveTypeName.toUpperCase()},`);
     } else if (enumTypeName) {
       let enumDescriptorName = toUpperSnaked(enumTypeName);
-      importer.importIfPathExists(
-        field.import,
-        enumTypeName,
-        enumDescriptorName
-      );
+      importer.importFromPath(field.import, enumTypeName, enumDescriptorName);
       contentList.push(`
       enumDescriptor: ${enumDescriptorName},`);
     } else if (messageTypeName) {
       let messageDescriptorName = toUpperSnaked(messageTypeName);
-      importer.importIfPathExists(
+      importer.importFromPath(
         field.import,
         messageTypeName,
         messageDescriptorName
@@ -339,10 +367,11 @@ export let ${descriptorName}: MessageDescriptor<${messageName}> = {
 
 function generateObservableDescriptor(
   messageDefinition: MessageDefinition,
-  typeChecker: TypeChecker,
-  contentList: Array<string>,
-  importer: Importer
+  currentModulePath: string,
+  importer: Importer,
+  contentList: Array<string>
 ): void {
+  let typeChecker = new TypeChecker(currentModulePath);
   let messageName = messageDefinition.name;
   contentList.push(`${generateComment(messageDefinition.comment)}
 export class ${messageName}`);
@@ -429,7 +458,7 @@ export class ${messageName}`);
 }
 `);
 
-  importer.importsFromMessageDescriptor("MessageDescriptor");
+  importer.importFromMessageDescriptor("MessageDescriptor");
   let descriptorName = toUpperSnaked(messageName);
   contentList.push(`
 export let ${descriptorName}: MessageDescriptor<${messageName}> = {
@@ -437,13 +466,13 @@ export let ${descriptorName}: MessageDescriptor<${messageName}> = {
   factoryFn: () => {
     return new ${messageName}();
   },
-  messageFields: [`);
+  fields: [`);
   if (messageDefinition.extends) {
     for (let ext of messageDefinition.extends) {
       let extDescriptorName = toUpperSnaked(ext.name);
-      importer.importIfPathExists(ext.import, ext.name, extDescriptorName);
+      importer.importFromPath(ext.import, ext.name, extDescriptorName);
       contentList.push(`
-    ...${extDescriptorName}.messageFields,`);
+    ...${extDescriptorName}.fields,`);
     }
   }
   for (let field of messageDefinition.fields) {
@@ -456,21 +485,17 @@ export let ${descriptorName}: MessageDescriptor<${messageName}> = {
       field.import
     );
     if (primitiveTypeName) {
-      importer.importsFromMessageDescriptor("PrimitiveType");
+      importer.importFromMessageDescriptor("PrimitiveType");
       contentList.push(`
       primitiveType: PrimitiveType.${primitiveTypeName.toUpperCase()},`);
     } else if (enumTypeName) {
       let enumDescriptorName = toUpperSnaked(enumTypeName);
-      importer.importIfPathExists(
-        field.import,
-        enumTypeName,
-        enumDescriptorName
-      );
+      importer.importFromPath(field.import, enumTypeName, enumDescriptorName);
       contentList.push(`
       enumDescriptor: ${enumDescriptorName},`);
     } else if (messageTypeName) {
       let messageDescriptorName = toUpperSnaked(messageTypeName);
-      importer.importIfPathExists(
+      importer.importFromPath(
         field.import,
         messageTypeName,
         messageDescriptorName
@@ -497,6 +522,142 @@ export let ${descriptorName}: MessageDescriptor<${messageName}> = {
   contentList.push(`
   ]
 };
+`);
+}
+
+function generateDatastoreModel(
+  datastoreDefinition: DatastoreDefinition,
+  currentModulePath: string,
+  importer: Importer,
+  contentList: Array<string>
+): void {
+  let messageName = datastoreDefinition.messageName;
+  let pathObj = path.parse(currentModulePath);
+  let importPath: string;
+  if (datastoreDefinition.import) {
+    importPath = datastoreDefinition.import;
+  } else {
+    importPath = pathObj.base;
+  }
+  let filePath = path.join(pathObj.dir, importPath + ".json");
+  let definitions = JSON.parse(fs.readFileSync(filePath).toString()) as Array<
+    Definition
+  >;
+  let messageDefinition: MessageDefinition;
+  for (let definition of definitions) {
+    if (definition.message && definition.message.name === messageName) {
+      messageDefinition = definition.message;
+      break;
+    }
+  }
+  if (!messageDefinition) {
+    throw newInternalError(
+      `Message definition of ${messageName} is not found at ${filePath}.`
+    );
+  }
+
+  let fieldToDefinitions = new Map<string, MessageFieldDefinition>();
+  let excludedIndexes = new Set<string>();
+  for (let field of messageDefinition.fields) {
+    fieldToDefinitions.set(field.name, field);
+    excludedIndexes.add(field.name);
+  }
+  if (datastoreDefinition.indexes) {
+    for (let index of datastoreDefinition.indexes) {
+      importer.importFromDatastoreModelDescriptor(
+        "DatastoreQuery",
+        "DatastoreFilter",
+        "DatastoreOrdering",
+        "Operator"
+      );
+      contentList.push(`
+export class ${index.name}QueryBuilder {
+  private datastoreQuery: DatastoreQuery<${messageName}>;
+
+  public constructor() {
+    let filters = new Array<DatastoreFilter>();
+    let orderings = new Array<DatastoreOrdering>();`);
+      for (let property of index.properties) {
+        if (property.descending !== undefined) {
+          contentList.push(`
+    orderings.push({
+      indexName: "${property.name}",
+      descending: ${property.descending}
+    });`);
+        }
+      }
+      contentList.push(`
+    this.datastoreQuery = {filters: filters, orderings: orderings};
+  }
+  public start(token: string): this {
+    this.datastoreQuery.startToken = token;
+    return this;
+  }
+  public limit(num: number): this {
+    this.datastoreQuery.limit = num;
+    return this;
+  }`);
+      for (let property of index.properties) {
+        if (!fieldToDefinitions.has(property.name)) {
+          throw newInternalError(
+            `Index ${property.name} is not defined from ${messageName}.`
+          );
+        }
+        excludedIndexes.delete(property.name);
+        contentList.push(`
+  public filterBy${toCapitalized(property.name)}(operator: Operator, value: ${
+          fieldToDefinitions.get(property.name).type
+        }): this {
+    this.datastoreQuery.filters.push({
+      indexName: "${property.name}",
+      indexValue: value,
+      operator: operator,
+    });
+    return this;
+  }`);
+      }
+      contentList.push(`
+  public build(): DatastoreQuery<${messageName}> {
+    return this.datastoreQuery;
+  }
+}
+`);
+    }
+  }
+
+  let keyDefinition = fieldToDefinitions.get(datastoreDefinition.key);
+  if (!keyDefinition) {
+    throw newInternalError(
+      `Datastore key ${datastoreDefinition.key} is not found from ` +
+        `${messageName}.`
+    );
+  }
+  if (
+    keyDefinition.type !== PRIMITIVE_TYPE_STRING &&
+    keyDefinition.type !== PRIMITIVE_TYPE_NUMBER
+  ) {
+    throw newInternalError(
+      `Datastore key only be a string or a number, but it is ` +
+        `${keyDefinition.type}.`
+    );
+  }
+  if (keyDefinition.isArray) {
+    throw newInternalError(`Datastore key cannot be an array.`);
+  }
+  let messageDescriptorName = toUpperSnaked(messageName);
+  importer.importFromPath(
+    datastoreDefinition.import,
+    messageName,
+    messageDescriptorName
+  );
+  importer.importFromDatastoreModelDescriptor("DatastoreModelDescriptor");
+  contentList.push(`${generateComment(datastoreDefinition.comment)}
+export let ${messageDescriptorName}_MODEL: DatastoreModelDescriptor<${messageName}> = {
+  name: "${messageName}",
+  key: "${datastoreDefinition.key}",
+  excludedIndexes: ["${Array.from(excludedIndexes).join(`","`)}"],
+  valueDescriptor: ${messageDescriptorName},
+}
 `);
 }
 

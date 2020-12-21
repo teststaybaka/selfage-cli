@@ -1,0 +1,40 @@
+[{
+  "message": {
+    "name": "BasicData",
+    "fields": [{
+      "name": "stringField",
+      "type": "string"
+    }, {
+      "name": "numberField",
+      "type": "number"
+    }, {
+      "name": "booleanField",
+      "type": "boolean"
+    }, {
+      "name": "booleanArrayField",
+      "type": "boolean",
+      "isArray": true
+    }]
+  }
+} , {
+  "datastore": {
+    "messageName": "BasicData",
+    "key": "stringField",
+    "indexes": [{
+      "name": "NumberBoolean",
+      "properties": [{
+        "name": "numberField",
+        "descending": false
+      }, {
+        "name": "booleanArrayField"
+      }]
+    }, {
+      "name": "Number",
+      "properties": [{
+        "name": "numberField",
+        "descending": true
+      }]
+    }],
+    "comment": "Comment1"
+  }
+}]

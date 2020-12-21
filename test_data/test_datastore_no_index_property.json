@@ -1,0 +1,20 @@
+[{
+  "message": {
+    "name": "Data",
+    "fields": [{
+      "name": "stringField",
+      "type": "string"
+    }]
+  }
+}, {
+  "datastore": {
+    "messageName": "Data",
+    "key": "stringField",
+    "indexes": [{
+      "name": "NoQuery",
+      "properties": [{
+        "name": "noField"
+      }]
+    }]
+  }
+}]

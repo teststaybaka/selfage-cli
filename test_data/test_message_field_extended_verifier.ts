@@ -16,10 +16,10 @@ let extendNestedData: ExtendNestedData = {
 
 // Verify
 assert(EXTEND_NESTED_DATA.name === "ExtendNestedData");
-assert(EXTEND_NESTED_DATA.messageFields.length === 3);
-assert(EXTEND_NESTED_DATA.messageFields[0].name === "basicData");
-assert(EXTEND_NESTED_DATA.messageFields[0].messageDescriptor === BASIC_DATA);
-assert(EXTEND_NESTED_DATA.messageFields[1].name === "color");
-assert(EXTEND_NESTED_DATA.messageFields[1].enumDescriptor === COLOR);
-assert(EXTEND_NESTED_DATA.messageFields[2].name === "basicData");
-assert(EXTEND_NESTED_DATA.messageFields[2].messageDescriptor === EXTENDED_DATA);
+assert(EXTEND_NESTED_DATA.fields.length === 3);
+assert(EXTEND_NESTED_DATA.fields[0].name === "basicData");
+assert(EXTEND_NESTED_DATA.fields[0].messageDescriptor === BASIC_DATA);
+assert(EXTEND_NESTED_DATA.fields[1].name === "color");
+assert(EXTEND_NESTED_DATA.fields[1].enumDescriptor === COLOR);
+assert(EXTEND_NESTED_DATA.fields[2].name === "basicData");
+assert(EXTEND_NESTED_DATA.fields[2].messageDescriptor === EXTENDED_DATA);
