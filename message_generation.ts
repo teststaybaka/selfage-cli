@@ -72,6 +72,7 @@ export function generateMessage(
     fs.readFileSync(modulePath + ".json").toString()
   ) as Array<Definition>;
   let importer = new Importer(selfageDir);
+  let typeChecker = new TypeChecker(modulePath);
   let contentList = new Array<string>();
   for (let definition of definitions) {
     if (definition.enum) {
@@ -80,14 +81,14 @@ export function generateMessage(
       if (!definition.message.isObservable) {
         generateMessageDescriptor(
           definition.message,
-          modulePath,
+          typeChecker,
           importer,
           contentList
         );
       } else {
         generateObservableDescriptor(
           definition.message,
-          modulePath,
+          typeChecker,
           importer,
           contentList
         );
@@ -95,7 +96,7 @@ export function generateMessage(
     } else if (definition.datastore) {
       generateDatastoreModel(
         definition.datastore,
-        modulePath,
+        typeChecker,
         importer,
         contentList
       );
@@ -109,7 +110,10 @@ export function generateMessage(
 class TypeChecker {
   private currentDir: string;
   private currentFileBase: string;
-  private cachedPathToMessages = new Map<string, Set<string>>();
+  private cachedPathToNameToMessages = new Map<
+    string,
+    Map<string, MessageDefinition>
+  >();
 
   public constructor(currentModulePath: string) {
     let pathObj = path.parse(currentModulePath);
@@ -117,25 +121,33 @@ class TypeChecker {
     this.currentFileBase = pathObj.base;
   }
 
-  public isNestedMessage(typeName: string, importPath?: string): boolean {
+  public isMessage(typeName: string, importPath?: string): boolean {
+    if (this.getMessage(typeName, importPath)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public getMessage(typeName: string, importPath?: string): MessageDefinition {
     if (!importPath) {
       importPath = this.currentFileBase;
     }
     let filePath = path.join(this.currentDir, importPath + ".json");
-    let messages = this.cachedPathToMessages.get(filePath);
-    if (!messages) {
-      messages = new Set<string>();
-      this.cachedPathToMessages.set(filePath, messages);
+    let nameToMessages = this.cachedPathToNameToMessages.get(filePath);
+    if (!nameToMessages) {
+      nameToMessages = new Map<string, MessageDefinition>();
+      this.cachedPathToNameToMessages.set(filePath, nameToMessages);
       let definitions = JSON.parse(
         fs.readFileSync(filePath).toString()
       ) as Array<Definition>;
       for (let definition of definitions) {
         if (definition.message) {
-          messages.add(definition.message.name);
+          nameToMessages.set(definition.message.name, definition.message);
         }
       }
     }
-    return messages.has(typeName);
+    return nameToMessages.get(typeName);
   }
 }
 
@@ -216,7 +228,7 @@ function flattenFieldType(
       primitiveTypeName: typeName,
     };
   }
-  if (typeChecker.isNestedMessage(typeName, importPath)) {
+  if (typeChecker.isMessage(typeName, importPath)) {
     return {
       messageTypeName: typeName,
     };
@@ -272,11 +284,10 @@ export let ${descriptorName}: EnumDescriptor<${enumName}> = {
 
 function generateMessageDescriptor(
   messageDefinition: MessageDefinition,
-  currentModulePath: string,
+  typeChecker: TypeChecker,
   importer: Importer,
   contentList: Array<string>
 ): void {
-  let typeChecker = new TypeChecker(currentModulePath);
   let messageName = messageDefinition.name;
   contentList.push(`${generateComment(messageDefinition.comment)}
 export interface ${messageName}`);
@@ -367,11 +378,10 @@ export let ${descriptorName}: MessageDescriptor<${messageName}> = {
 
 function generateObservableDescriptor(
   messageDefinition: MessageDefinition,
-  currentModulePath: string,
+  typeChecker: TypeChecker,
   importer: Importer,
   contentList: Array<string>
 ): void {
-  let typeChecker = new TypeChecker(currentModulePath);
   let messageName = messageDefinition.name;
   contentList.push(`${generateComment(messageDefinition.comment)}
 export class ${messageName}`);
@@ -527,32 +537,20 @@ export let ${descriptorName}: MessageDescriptor<${messageName}> = {
 
 function generateDatastoreModel(
   datastoreDefinition: DatastoreDefinition,
-  currentModulePath: string,
+  typeChecker: TypeChecker,
   importer: Importer,
   contentList: Array<string>
 ): void {
   let messageName = datastoreDefinition.messageName;
-  let pathObj = path.parse(currentModulePath);
-  let importPath: string;
-  if (datastoreDefinition.import) {
-    importPath = datastoreDefinition.import;
-  } else {
-    importPath = pathObj.base;
-  }
-  let filePath = path.join(pathObj.dir, importPath + ".json");
-  let definitions = JSON.parse(fs.readFileSync(filePath).toString()) as Array<
-    Definition
-  >;
-  let messageDefinition: MessageDefinition;
-  for (let definition of definitions) {
-    if (definition.message && definition.message.name === messageName) {
-      messageDefinition = definition.message;
-      break;
-    }
-  }
+  let messageDefinition = typeChecker.getMessage(messageName);
   if (!messageDefinition) {
+    let pathToLog = datastoreDefinition.import;
+    if (!pathToLog) {
+      pathToLog = "the same file";
+    }
     throw newInternalError(
-      `Message definition of ${messageName} is not found at ${filePath}.`
+      `Message definition of ${messageName} is not found at ` +
+        `${datastoreDefinition.import}.`
     );
   }
 
